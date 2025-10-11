@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - NAQL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            direction: rtl;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            color: #00ff88;
+            margin-bottom: 10px;
+        }
+        .control-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .camera-control {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .camera-control h3 {
+            color: #00ff88;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+        }
+        .btn-stop {
+            background: linear-gradient(45deg, #ff6b6b, #ffa726);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status-indicators {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .status-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .status-card h4 {
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+        .status-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .live-preview {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .live-preview h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+        .preview-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .preview-box {
+            background: #000;
+            border-radius: 10px;
+            padding: 10px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            border: 2px solid #333;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .back-link a {
+            color: #00ff88;
+            text-decoration: none;
+            font-size: 1.1rem;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .control-panel,
+            .status-indicators,
+            .preview-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 لوحة التحكم - نظام المراقبة</h1>
+            <p>التحكم الكامل في كاميرات النظام وإعداداتها</p>
+        </div>
+
+        <div class="control-panel">
+            <div class="camera-control">
+                <h3>📱 الكاميرا الأمامية</h3>
+                <div class="control-buttons">
+                    <button class="btn" onclick="controlCamera('front', 'start')" id="frontStart">
+                        تشغيل الكاميرا
+                    </button>
+                    <button class="btn btn-stop" onclick="controlCamera('front', 'stop')" id="frontStop" disabled>
+                        إيقاف الكاميرا
+                    </button>
+                </div>
+            </div>
+
+            <div class="camera-control">
+                <h3>📷 الكاميرا الخلفية</h3>
+                <div class="control-buttons">
+                    <button class="btn" onclick="controlCamera('back', 'start')" id="backStart">
+                        تشغيل الكاميرا
+                    </button>
+                    <button class="btn btn-stop" onclick="controlCamera('back', 'stop')" id="backStop" disabled>
+                        إيقاف الكاميرا
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-indicators">
+            <div class="status-card">
+                <h4>حالة الكاميرا الأمامية</h4>
+                <div class="status-value" id="frontStatusText">غير نشطة</div>
+            </div>
+            <div class="status-card">
+                <h4>حالة الكاميرا الخلفية</h4>
+                <div class="status-value" id="backStatusText">غير نشطة</div>
+            </div>
+        </div>
+
+        <div class="live-preview">
+            <h3>🎥 معاينة مباشرة</h3>
+            <div class="preview-container">
+                <div class="preview-box" id="frontPreview">
+                    الكاميرا الأمامية - غير نشطة
+                </div>
+                <div class="preview-box" id="backPreview">
+                    الكاميرا الخلفية - غير نشطة
+                </div>
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="/">← العودة إلى الصفحة الرئيسية</a>
+        </div>
+    </div>
+
+    <script>
+        // التحكم في الكاميرات
+        async function controlCamera(cameraType, action) {
+            try {
+                const response = await fetch('/api/control_camera', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        camera_type: cameraType,
+                        action: action
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    updateUI(cameraType, action);
+                    updateStatus();
+                }
+                
+            } catch (error) {
+                console.error('Error controlling camera:', error);
+                alert('خطأ في التحكم بالكاميرا');
+            }
+        }
+        
+        // تحديث واجهة المستخدم
+        function updateUI(cameraType, action) {
+            const startBtn = document.getElementById(`${cameraType}Start`);
+            const stopBtn = document.getElementById(`${cameraType}Stop`);
+            
+            if (action === 'start') {
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } else {
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        }
+        
+        // تحديث حالة الكاميرات
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/camera_status');
+                const status = await response.json();
+                
+                document.getElementById('frontStatusText').textContent = 
+                    status.front_active ? 'نشطة ✅' : 'غير نشطة ❌';
+                document.getElementById('backStatusText').textContent = 
+                    status.back_active ? 'نشطة ✅' : 'غير نشطة ❌';
+                    
+                // تحديث المعاينة
+                const frontPreview = document.getElementById('frontPreview');
+                const backPreview = document.getElementById('backPreview');
+                
+                if (status.front_active) {
+                    frontPreview.innerHTML = `
+                        <img src="/video_feed_front" style="max-width: 100%; border-radius: 5px;" 
+                             alt="البث المباشر - أمامي">
+                    `;
+                } else {
+                    frontPreview.textContent = 'الكاميرا الأمامية - غير نشطة';
+                }
+                
+                if (status.back_active) {
+                    backPreview.innerHTML = `
+                        <img src="/video_feed_back" style="max-width: 100%; border-radius: 5px;" 
+                             alt="البث المباشر - خلفي">
+                    `;
+                } else {
+                    backPreview.textContent = 'الكاميرا الخلفية - غير نشطة';
+                }
+                
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+        
+        // تحديث الحالة كل 2 ثانية
+        setInterval(updateStatus, 2000);
+        updateStatus();
+    </script>
+</body>
+</html>
