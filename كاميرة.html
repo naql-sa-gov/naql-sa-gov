@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام المراقبة - NAQL</title>
+    <style>
+        body { font-family: Arial, sans-serif; direction: rtl; background: #1a1a1a; color: white; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .camera-section { margin: 20px 0; text-align: center; }
+        video { width: 100%; max-width: 600px; border: 2px solid #00ff00; border-radius: 10px; }
+        .controls { margin: 20px 0; }
+        button { background: #00ff00; color: black; border: none; padding: 10px 20px; margin: 5px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .hidden { display: none; }
+        .stream-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>نظام مراقبة الكاميرات - NAQL</h1>
+        
+        <div class="camera-section">
+            <h2>الكاميرا الأمامية</h2>
+            <video id="frontCamera" autoplay playsinline></video>
+            <div class="controls">
+                <button onclick="startFrontCamera()">تشغيل الكاميرا الأمامية</button>
+                <button onclick="stopFrontCamera()">إيقاف الكاميرا الأمامية</button>
+                <button onclick="startRecording('front')">بدء التسجيل</button>
+                <button onclick="stopRecording('front')">وقف التسجيل</button>
+            </div>
+        </div>
+
+        <div class="camera-section">
+            <h2>الكاميرا الخلفية</h2>
+            <video id="backCamera" autoplay playsinline></video>
+            <div class="controls">
+                <button onclick="startBackCamera()">تشغيل الكاميرا الخلفية</button>
+                <button onclick="stopBackCamera()">إيقاف الكاميرا الخلفية</button>
+                <button onclick="startRecording('back')">بدء التسجيل</button>
+                <button onclick="stopRecording('back')">وقف التسجيل</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="openControlPanel()">فتح لوحة التحكم</button>
+            <button onclick="openLiveStream()">المشاهدة المباشرة</button>
+        </div>
+    </div>
+
+    <script>
+        let frontStream = null;
+        let backStream = null;
+        let frontRecorder = null;
+        let backRecorder = null;
+
+        async function startFrontCamera() {
+            try {
+                frontStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' } 
+                });
+                document.getElementById('frontCamera').srcObject = frontStream;
+            } catch (err) {
+                console.error('Error accessing front camera:', err);
+            }
+        }
+
+        async function startBackCamera() {
+            try {
+                backStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                document.getElementById('backCamera').srcObject = backStream;
+            } catch (err) {
+                console.error('Error accessing back camera:', err);
+            }
+        }
+
+        function stopFrontCamera() {
+            if (frontStream) {
+                frontStream.getTracks().forEach(track => track.stop());
+                document.getElementById('frontCamera').srcObject = null;
+            }
+        }
+
+        function stopBackCamera() {
+            if (backStream) {
+                backStream.getTracks().forEach(track => track.stop());
+                document.getElementById('backCamera').srcObject = null;
+            }
+        }
+
+        function startRecording(cameraType) {
+            const stream = cameraType === 'front' ? frontStream : backStream;
+            if (!stream) return;
+
+            const recorder = new MediaRecorder(stream);
+            const chunks = [];
+
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/mp4' });
+                // هنا يمكن إرسال الفيديو إلى الخادم
+                console.log(`Recording saved for ${cameraType} camera`);
+            };
+
+            recorder.start();
+            if (cameraType === 'front') frontRecorder = recorder;
+            else backRecorder = recorder;
+        }
+
+        function stopRecording(cameraType) {
+            const recorder = cameraType === 'front' ? frontRecorder : backRecorder;
+            if (recorder && recorder.state === 'recording') {
+                recorder.stop();
+            }
+        }
+
+        function openControlPanel() {
+            window.open('/control-panel', '_blank');
+        }
+
+        function openLiveStream() {
+            window.open('/live-stream', '_blank');
+        }
+    </script>
+</body>
+</html>
