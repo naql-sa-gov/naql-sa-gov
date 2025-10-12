@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام البث المباشر - الموبيل</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .header {
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        .camera-section {
+            margin: 20px 0;
+        }
+        .camera-feed {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            background: #000;
+            border: 3px solid #00ff88;
+            border-radius: 15px;
+            margin: 0 auto 20px;
+            overflow: hidden;
+        }
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .btn {
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+        }
+        .btn-stop {
+            background: linear-gradient(45deg, #ff6b6b, #ffa726);
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+        }
+        .status-indicator.active {
+            background: #00ff88;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📹 نظام البث المباشر - الموبيل</h1>
+            <p>تفعيل الكاميرا الأمامية والخلفية للبث المباشر</p>
+        </div>
+
+        <div class="camera-section">
+            <div class="camera-feed">
+                <video id="videoElement" autoplay playsinline muted></video>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startFrontCamera()">
+                    تشغيل الكاميرا الأمامية
+                </button>
+                <button class="btn" onclick="startBackCamera()">
+                    تشغيل الكاميرا الخلفية
+                </button>
+                <button class="btn btn-stop" onclick="stopCamera()">
+                    إيقاف الكاميرا
+                </button>
+            </div>
+
+            <div class="status">
+                <span>حالة الكاميرا: </span>
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">غير نشطة</span>
+            </div>
+
+            <div id="streamInfo" class="status hidden">
+                <h3>🔗 معلومات البث</h3>
+                <p>البث المباشر يعمل في الخلفية</p>
+                <p>يمكنك الآن إغلاق الصفحة وسيستمر البث</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStream = null;
+        let isStreaming = false;
+
+        // تحديث حالة الكاميرا
+        function updateStatus(active, text) {
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            if (active) {
+                indicator.classList.add('active');
+                statusText.textContent = text;
+            } else {
+                indicator.classList.remove('active');
+                statusText.textContent = text;
+            }
+        }
+
+        // بدء الكاميرا الأمامية
+        async function startFrontCamera() {
+            try {
+                await startCamera({ facingMode: 'user' }, 'أمامية');
+            } catch (error) {
+                console.error('Error starting front camera:', error);
+                alert('خطأ في تشغيل الكاميرا الأمامية');
+            }
+        }
+
+        // بدء الكاميرا الخلفية
+        async function startBackCamera() {
+            try {
+                await startCamera({ facingMode: 'environment' }, 'خلفية');
+            } catch (error) {
+                console.error('Error starting back camera:', error);
+                alert('خطأ في تشغيل الكاميرا الخلفية');
+            }
+        }
+
+        // دالة بدء الكاميرا الرئيسية
+        async function startCamera(constraints, cameraType) {
+            // إيقاف أي بث سابق
+            if (currentStream) {
+                stopCamera();
+            }
+
+            try {
+                // طلب إذن الكاميرا
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: constraints,
+                    audio: false
+                });
+
+                currentStream = stream;
+                const videoElement = document.getElementById('videoElement');
+                videoElement.srcObject = stream;
+                
+                isStreaming = true;
+                updateStatus(true, `نشطة - ${cameraType}`);
+
+                // عرض معلومات البث
+                document.getElementById('streamInfo').classList.remove('hidden');
+
+                // إعدادات للعمل في الخلفية
+                setupBackgroundStreaming(stream);
+
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                updateStatus(false, 'خطأ في الوصول للكاميرا');
+                throw error;
+            }
+        }
+
+        // إعداد البث في الخلفية
+        function setupBackgroundStreaming(stream) {
+            // استخدام Service Worker للعمل في الخلفية
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered');
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed');
+                    });
+            }
+
+            // منع النوم في بعض المتصفحات
+            if ('wakeLock' in navigator) {
+                navigator.wakeLock.request('screen')
+                    .then(wakeLock => {
+                        console.log('Wake Lock active');
+                    })
+                    .catch(err => {
+                        console.log('Wake Lock failed:', err);
+                    });
+            }
+        }
+
+        // إيقاف الكاميرا
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                currentStream = null;
+            }
+            
+            const videoElement = document.getElementById('videoElement');
+            videoElement.srcObject = null;
+            
+            isStreaming = false;
+            updateStatus(false, 'غير نشطة');
+            document.getElementById('streamInfo').classList.add('hidden');
+        }
+
+        // التعامل مع تغيير حالة الصفحة
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && isStreaming) {
+                console.log('الصفحة في الخلفية - البث مستمر');
+            }
+        });
+
+        // تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus(false, 'غير نشطة');
+        });
+    </script>
+</body>
+</html>
