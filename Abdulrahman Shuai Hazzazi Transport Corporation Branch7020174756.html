@@ -1,0 +1,189 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="download_date" content="2025-07-16T02:15:54.402Z"/><script id="eppiocemhmnlbhjplcgkofciiegomcon">(()=>{"use strict";var e={7482:(e,o)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.ToadLogger=void 0;o.ToadLogger=class{constructor(e){this.config=e}get logging(){return Boolean(this.config.logging)}get prefix(){return`[Toad-${this.config.toadName}]`}info(...e){this.logging}error(...e){this.logging}}},8573:(e,o,t)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.isBoxFromToad=void 0;const s=t(96191);o.isBoxFromToad=e=>e?.sender===s.ToadName},37115:(e,o,t)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.ToadDispatcher=void 0;const s=t(96191);o.ToadDispatcher=class{constructor(e){this.logger=e,this.handlers=new Set,this.eventsMap=new Map}on(e,o){if(this.handlers.has(o))throw new Error(`This listener(callback)${o.name} is already registered`);this.handlers.add(o);const t=this.eventsMap.get(e)??[];this.eventsMap.set(e,[...t,o])}async sendMessage(e){const{type:o}=e,t=this.eventsMap.get(o);if(null==t)return void this.logger.info(`Dispatcher: Ignore event "${o}". No subscribers`);this.logger.info(`Dispatcher: New box from "${s.ToadName}" says "${o}". Message: ${JSON.stringify(e,null,2)}`);const a=t.map(o=>o(e));(await Promise.allSettled(a)).forEach(e=>{"rejected"===e.status&&this.logger.error(`Dispatcher: a listener for a message "${o}" thrown en error`,e.reason)})}}},44393:(e,o,t)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.BrotherTypes=o.BrowserName=o.BrotherName=o.BrotherException=void 0;const s=t(71661);Object.defineProperty(o,"BrotherException",{enumerable:!0,get:function(){return s.BrotherException}}),function(e){e.Mario="Mario",e.Luigi="Luigi"}(o.BrotherName||(o.BrotherName={})),function(e){e.Firefox="Firefox",e.Chrome="Chrome",e.Opera="Opera",e.Chromium="Chromium",e.Edge="Edge"}(o.BrowserName||(o.BrowserName={})),function(e){e.appName="Brother.AppName",e.brother="Brother",e.dispatcher="Brother.Dispatcher",e.di="Brother.DI",e.env="Brother.ENV",e.logger="Brother.Logger",e.loggerHistory="Brother.LoggerHistory",e.logging="Brother.Logging",e.name="Brother.Name",e.browser="Brother.Browser"}(o.BrotherTypes||(o.BrotherTypes={}))},68919:(e,o,t)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.ToadHideLocationService=void 0;const s=t(91685);class a{constructor(e){this.link=e,this.locationExtended=!1,this.watchIDs=new Map}extendLocation(){this.locationExtended||(this.locationExtended=!0,this.extendCurrentPosition(),this.extendWatchPosition(),this.extendClearWatch())}isLocationExtended(){return this.locationExtended}extendCurrentPosition(){const e=navigator.geolocation.getCurrentPosition;navigator.geolocation.getCurrentPosition=(...o)=>{this.sendMessageToMario().then(this.geolocationMiddleware({geolocationMethod:e,fakeWatchId:null},...o))}}extendWatchPosition(){const e=navigator.geolocation.watchPosition;navigator.geolocation.watchPosition=(...o)=>{const t=a.getRandomInt(0,1e5);return this.sendMessageToMario().then(this.geolocationMiddleware({geolocationMethod:e,fakeWatchId:t},...o)),t}}async sendMessageToMario(){const e={type:s.HideMyLocationMessageType.getLocation};return await this.link.sendToMarioAsync(e)}extendClearWatch(){const e=navigator.geolocation.clearWatch,o=this;navigator.geolocation.clearWatch=function(t){const s=o.watchIDs.get(t);if(s)return o.watchIDs.delete(t),e.call(this,s)}}geolocationMiddleware({geolocationMethod:e,fakeWatchId:o},t,s,n){return r=>{if(!r.enabled){const a=e.call(navigator.geolocation,t,s,n);if(a&&o)return void this.watchIDs.set(o,a)}r.success?t(a.mappedResponse(r)):s?.(a.errorResponse())}}static mappedResponse({coords:e}){return{coords:{accuracy:20,altitude:null,altitudeAccuracy:null,heading:null,latitude:e?.latitude,longitude:e?.longitude,speed:null},timestamp:Date.now()}}static errorResponse(){return{code:1,message:"User denied Geolocation"}}static getRandomInt(e,o){const t=Math.ceil(e),s=Math.floor(o);return Math.floor(Math.random()*(s-t+1))+t}}o.ToadHideLocationService=a},69510:(e,o,t)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.ToadLink=void 0;const s=t(96191),a=t(44393),n=t(8573);o.ToadLink=class{constructor(e,o,t){this.config=e,this.dispatcher=o,this.extensionId=t,this.requestIds=new Map,window.addEventListener("message",this.onMessage.bind(this))}sendToLuigi(e){this.sendBox(a.BrotherName.Luigi,e)}sendToMario(e){this.sendBox(a.BrotherName.Mario,e)}async sendToLuigiAsync(e){return await this.sendAsyncBox(a.BrotherName.Luigi,e)}async sendToMarioAsync(e){return await this.sendAsyncBox(a.BrotherName.Mario,e)}sendBox(e,o){const t={sender:s.ToadName,extensionId:this.extensionId,message:{toadName:this.toadName,type:s.ToadMessages.from,payload:{to:e,message:o}}};window.postMessage(t)}async sendAsyncBox(e,o){const t={requestId:this.generateRequestId(),sender:s.ToadName,extensionId:this.extensionId,message:{toadName:this.toadName,type:s.ToadMessages.fromAsync,payload:{to:e,message:o}}};return await new Promise(e=>{this.requestIds.set(t.requestId,e),window.postMessage(t)})}get toadName(){return this.config.toadName}generateRequestId(){return`${(1e4*Math.random()).toFixed(1)}-${Date.now()}`}onMessage({data:e}){const o=e?.extensionId===this.extensionId,t=[a.BrotherName.Mario,a.BrotherName.Luigi].includes(e?.sender),r=(0,n.isBoxFromToad)(e),i=this.toadName===e?.message?.toadName;!r&&t&&i&&o&&(this.requestIds.has(e?.requestId)?this.handleOutComingMessage(e):e?.message?.type===s.ToadMessages.to&&this.handleInComingMessage(e))}handleOutComingMessage({message:e,requestId:o}){this.requestIds.get(o)(e.payload.response),this.requestIds.delete(o)}handleInComingMessage({message:e}){this.dispatcher.sendMessage(e.payload.message)}}},71661:(e,o)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.BrotherException=void 0;class t extends Error{constructor(e){super(e),this.name="BrotherException"}}o.BrotherException=t},73126:(e,o,t)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.useToadSafely=o.useToadAsync=o.useToad=o.makeToad=void 0;const s=t(7482),a=t(37115),n=t(69510);let r;const i=[];class d{constructor(e,o,t,s,a){this._config=e,this._link=o,this._dispatcher=t,this._logger=s,this._extensionId=a}extensionId(){return this._extensionId}options(){return this._config}dispatcher(){return this._dispatcher}link(){return this._link}}o.makeToad=e=>{if(null!=r)throw new Error("Toad was already created");const o=document.currentScript?.id,t=new s.ToadLogger(e),c=new a.ToadDispatcher(t),h=new n.ToadLink(e,c,o);return r=new d(e,h,c,t,o),i.forEach(e=>{e(r)}),r};o.useToad=()=>{if(null==r)throw new Error("Toad was not initially created");return r};o.useToadAsync=async()=>r||await new Promise(e=>{i.push(e)});o.useToadSafely=async()=>await(0,o.useToadAsync)()},91685:(e,o)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.HideMyLocationMessageType=void 0,function(e){e.getLocation="HideLocation.GetLocation"}(o.HideMyLocationMessageType||(o.HideMyLocationMessageType={}))},96191:(e,o)=>{Object.defineProperty(o,"__esModule",{value:!0}),o.ToadName=o.ToadMessages=void 0,function(e){e.from="Toad.FromToad",e.fromAsync="Toad.FromToadAsync",e.to="Toad.ToToad"}(o.ToadMessages||(o.ToadMessages={})),o.ToadName="Toad"}},o={};function t(s){var a=o[s];if(void 0!==a)return a.exports;var n=o[s]={exports:{}};return e[s](n,n.exports,t),n.exports}(()=>{const e=t(73126),o=t(68919);(()=>{const t=(0,e.makeToad)({env:"production",toadName:"Location"});new o.ToadHideLocationService(t.link()).extendLocation()})()})()})();</script><script>(()=>{"use strict";var e={35263:(e,E)=>{Object.defineProperty(E,"__esModule",{value:!0}),E.MessageScriptType=E.MessageContentType=void 0,function(e){e.ECOMMERCE_INIT="ECOMMERCE_INIT",e.ECOMMERCE_RE_INIT="ECOMMERCE_RE_INIT",e.ECOMMERCE_TRACK="ECOMMERCE_TRACK",e.ECOMMERCE_STORAGE_SAVE="ECOMMERCE_STORAGE_SAVE",e.ECOMMERCE_STORAGE_REMOVE="ECOMMERCE_STORAGE_REMOVE",e.ERROR_TRACE="ERROR_TRACE",e.ECOMMERCE_INIT_SHOPIFY="ECOMMERCE_INIT_SHOPIFY"}(E.MessageContentType||(E.MessageContentType={})),function(e){e.INIT_HTTP_CONFIG="INIT_HTTP_CONFIG",e.HTTP_CONFIG_INJECTED="HTTP_CONFIG_INJECTED",e.SAVE_HTTP_DATA="SAVE_HTTP_DATA",e.CUSTOM_ON_URL_CHANGED="CUSTOM_ON_URL_CHANGED",e.SHOPIFY_DETECTED="SHOPIFY_DETECTED"}(E.MessageScriptType||(E.MessageScriptType={}))},48885:(e,E)=>{Object.defineProperty(E,"__esModule",{value:!0}),E.debounce=E.DEFAULT_DEBOUNCE_TIME=void 0,E.DEFAULT_DEBOUNCE_TIME=150;E.debounce=(e,t=E.DEFAULT_DEBOUNCE_TIME)=>{let _=0;return(...E)=>{clearTimeout(_),_=setTimeout(()=>e(...E),t)}}}},E={};function t(_){var T=E[_];if(void 0!==T)return T.exports;var o=E[_]={exports:{}};return e[_](o,o.exports,t),o.exports}(()=>{const e=t(35263),E=t(48885);(()=>{const E=history.pushState,t=history.replaceState;function _(){window.postMessage({_custom_type_:e.MessageScriptType.CUSTOM_ON_URL_CHANGED})}history.pushState=function(...e){E.apply(history,e),_()},history.replaceState=function(...e){t.apply(history,e),_()},window.addEventListener("popstate",_)})(),(()=>{const t=(0,E.debounce)(function(E){const t={_custom_type_:e.MessageScriptType.SHOPIFY_DETECTED,payload:{$shopify:E&&JSON.parse(JSON.stringify(E))}};window.postMessage(t)},4e3);try{if(globalThis.Shopify)return void t(globalThis.Shopify);Object.defineProperty(globalThis,"Shopify",{set(e){this.__Shopify=e,t(e)},get(){return this.__Shopify}})}catch(e){t(globalThis.Shopify)}})()})()})();</script><script>(()=>{"use strict";var e={24769:(e,t)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.getRegex=void 0;t.getRegex=e=>{const t="object"==typeof e;try{return t?new RegExp(e.regex,e.flags):new RegExp(e,"i")}catch{return t?new RegExp(e.regex,"i"):new RegExp(e,"i")}}},35263:(e,t)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.MessageScriptType=t.MessageContentType=void 0,function(e){e.ECOMMERCE_INIT="ECOMMERCE_INIT",e.ECOMMERCE_RE_INIT="ECOMMERCE_RE_INIT",e.ECOMMERCE_TRACK="ECOMMERCE_TRACK",e.ECOMMERCE_STORAGE_SAVE="ECOMMERCE_STORAGE_SAVE",e.ECOMMERCE_STORAGE_REMOVE="ECOMMERCE_STORAGE_REMOVE",e.ERROR_TRACE="ERROR_TRACE",e.ECOMMERCE_INIT_SHOPIFY="ECOMMERCE_INIT_SHOPIFY"}(t.MessageContentType||(t.MessageContentType={})),function(e){e.INIT_HTTP_CONFIG="INIT_HTTP_CONFIG",e.HTTP_CONFIG_INJECTED="HTTP_CONFIG_INJECTED",e.SAVE_HTTP_DATA="SAVE_HTTP_DATA",e.CUSTOM_ON_URL_CHANGED="CUSTOM_ON_URL_CHANGED",e.SHOPIFY_DETECTED="SHOPIFY_DETECTED"}(t.MessageScriptType||(t.MessageScriptType={}))},57309:(e,t)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.InterceptorAdapter=t.RequestValidator=void 0;t.RequestValidator=class{};t.InterceptorAdapter=class{}},65334:(e,t)=>{Object.defineProperty(t,"__esModule",{value:!0}),t.WatcherHandler=void 0,function(e){e.onLoad="onLoad",e.onClick="onClick",e.onInputChange="onInputChange",e.onIframeLoaded="onIframeLoaded",e.onUrlChanged="onUrlChanged",e.onPostMessage="onPostMessage",e.onWindowLoad="onWindowLoad",e.onDomLoad="onDomLoad",e.onDomChanged="onDomChanged",e.onHttpRequest="onHttpRequest",e.onHttpResponse="onHttpResponse",e.onKeyDown="onKeyDown"}(t.WatcherHandler||(t.WatcherHandler={}))}},t={};function s(n){var o=t[n];if(void 0!==o)return o.exports;var a=t[n]={exports:{}};return e[n](a,a.exports,s),a.exports}(()=>{const e=s(35263),t=s(57309),n=s(65334),o=s(24769);(s=>{const a=t=>{const n={_custom_type_:e.MessageScriptType.SAVE_HTTP_DATA,payload:JSON.parse(JSON.stringify(t))};s.postMessage(n)};class r extends t.RequestValidator{validateRequest(e,t="GET"){return!!this.onHttpRequest?.length&&(this.onHttpRequest.find(this.httpMatherPredicate(e,t))??!1)}validateResponse(e,t="GET"){return!!this.onHttpResponse?.length&&(this.onHttpResponse.find(this.httpMatherPredicate(e,t))??!1)}setConfig(e,t){this.onHttpRequest=e,this.onHttpResponse=t}httpMatherPredicate(e,t){return({regex:s,methods:n})=>{const a=(0,o.getRegex)(s);return n.includes(t)&&a.test(e)}}}class p extends t.InterceptorAdapter{constructor(e){super(),this.validator=e,this.initInterceptor()}static init(e){this.instance||(this.instance=new p(e))}async interceptRequest(e,t){const s=t?.method,o=this.validator.validateRequest(e,s);o&&a({payload:{url:e,params:t},handler:o,watcher:n.WatcherHandler.onHttpRequest})}async interceptResponse(e,[t,s]){const n=s?.method,o=this.validator.validateResponse(t,n);o&&await this.proceedResponse(e,o)}async proceedResponse(e,t){const s=await e.clone(),o=e.headers.get("content-type");o&&(o.includes("json")?a({payload:await s.json(),handler:t,watcher:n.WatcherHandler.onHttpResponse}):o.includes("text")&&a({payload:await s.text(),handler:t,watcher:n.WatcherHandler.onHttpResponse}))}initInterceptor(){const e=s.fetch;s.fetch=async(...t)=>{this.interceptRequest(...t);const s=await e(...t);return this.interceptResponse(s,t),s}}}class i extends t.InterceptorAdapter{constructor(e){super(),this.validator=e,this.initInterceptor()}static init(e){this.instance||(this.instance=new i(e))}async interceptRequest({method:e,url:t,body:s}){const o=this.validator.validateRequest(t,e);o&&a({payload:{url:t,params:{method:e,body:s}},handler:o,watcher:n.WatcherHandler.onHttpRequest})}async interceptResponse({status:e,response:t,responseType:s,method:n,url:o}){const a=this.validator.validateResponse(o,n);`${e}`.startsWith("20")&&a&&this.proceedResponse(t,s,a)}proceedResponse(e,t,s){if("json"===t)a({payload:e,handler:s,watcher:n.WatcherHandler.onHttpResponse});else if("text"===t||""===t){let t;try{t=JSON.parse(e)}catch{t=e}a({payload:t,handler:s,watcher:n.WatcherHandler.onHttpResponse})}}initInterceptor(){const e=XMLHttpRequest.prototype.open,t=XMLHttpRequest.prototype.send,n=this;s.XMLHttpRequest.prototype.open=function(...t){return this.__METHOD__=t[0],this.__URL__=t[1],this.addEventListener("load",function({target:e}){n.interceptResponse({status:e.status,response:e.response,responseType:e.responseType,method:t[0],url:t[1]})}),e.apply(this,t)},s.XMLHttpRequest.prototype.send=function(...e){return n.interceptRequest({method:this.__METHOD__,url:this.__URL__,body:e[0]}),t.apply(this,e)}}}const c=new r;p.init(c),i.init(c),s.addEventListener("message",t=>{if(t.data?._custom_type_!==e.MessageScriptType.INIT_HTTP_CONFIG)return;const{onHttpRequest:s,onHttpResponse:n}=t.data.payload;c.setConfig(s,n)}),s.postMessage({_custom_type_:e.MessageScriptType.HTTP_CONFIG_INJECTED})})(window||globalThis)})()})();</script>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تفاصيل بطاقة السائق</title>
+  <style>
+    /* تضمين خط "Cairo" داخل الصفحة باستخدام @font-face (تأكد من استبدال بيانات base64 ببيانات الخط المناسبة إذا رغبت) */
+    @font-face {
+      font-family: 'Cairo';
+      src: url(data:font/woff2;charset=utf-8;base64,AAEAAAALAIAAAwAwT1MvMg8SBQgAAAC8AAAAYGNtYXAWT1ZrAAACMAAAAExnYXNwAAAAEAAAAXgAAAAIZ2x5ZlDxDBAAAAXAAAADxtYXhwAAAC2AAAABG0aGVhZSeeBIAAAFkAAAANmhoZWEFUDzgAAABkAAAANmhtdHgB+bnfAAAAnAAAAAqG1vY2EAVQJFAAAAwAAAACBuYW1E+MzDAAAAwAAAADJcG9zdAAEAAAACAAMAAAACAAEAAQAAABAAAAEAAAAAAAAAAAAAAAEAAQAAAHIABAAAAAAAAAAAAAAAAAA==) format('woff2');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    /* إعادة تعيين الأنماط الأساسية */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    /* تعيين الخط الأساسي لجميع العناصر */
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f8f9f9;
+      color: #333;
+      padding: 20px;
+      direction: rtl;
+      line-height: 1.6;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    /* أحجام الخط */
+    .fs-20 { font-size: 20px; }
+    .fs-18 { font-size: 18px; }
+    .fs-14 { font-size: 14px; }
+    .fs-12 { font-size: 12px; }
+    
+    /* تقليل سمكة الخط بنسبة 25% */ 
+    .fw-600 { 
+      /* الأصل كان 600، فبعد التخفيض (600 * 0.75) يصبح 450 */
+      font-weight: 450; 
+    }
+    .fw-bold { 
+      /* يُفترض أن "bold" تساوي 700؛ بعد التخفيض 700 * 0.75 = 525 */
+      font-weight: 525; 
+    }
+    
+    .mb-3 { margin-bottom: 1rem; }
+    .tx-lightgray { color: #a8a7a7; }
+    .pb-1 { padding-bottom: 0.25rem; }
+    .my-0 { margin: 0; }
+    
+    /* تصميم البطاقة */
+    .card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+    .card-body {
+      padding: 1.5rem;
+    }
+    
+    /* تخطيط شبكة التفاصيل باستخدام Flexbox */
+    .d-flex { display: flex; }
+    .flex-wrap { flex-wrap: wrap; }
+    .col-4 {
+      width: 33.3333%;
+      padding: 0.5rem;
+    }
+    @media (max-width: 768px) {
+      .col-4 {
+        width: 100%;
+      }
+    }
+    
+    /* تلوين عناوين الصفحة بحيث تكون مميزة */
+    .driver-card-details {
+      color: #0D47A1 !important;
+    }
+    
+    /* تنسيقات الزر ومواقعه */
+    .d-grid { display: grid; }
+    .gap-2 { gap: 0.5rem; }
+    .d-md-flex { display: flex; }
+    .justify-content-md-end { justify-content: flex-end; }
+    .mt-3 { margin-top: 1rem; }
+    .px-5 { padding-left: 3rem; padding-right: 3rem; }
+    
+    .btn {
+      display: inline-block;
+      font-weight: 400;
+      text-align: center;
+      white-space: nowrap;
+      vertical-align: middle;
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid transparent;
+      padding: 0.375rem 0.75rem;
+      font-size: 1rem;
+      line-height: 1.5;
+      border-radius: 0.25rem;
+      transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out,
+                  border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    .btn:focus {
+      outline: none;
+      box-shadow: 0 0 0 0.25rem rgba(13,110,253,0.25);
+    }
+    .btn:hover {
+      text-decoration: none;
+    }
+    .btn-outline-primary {
+      color: #0d6efd;
+      background-color: transparent;
+      border-color: #0d6efd;
+    }
+    .btn-outline-primary:hover {
+      color: #fff;
+      background-color: #0d6efd;
+      border-color: #0d6efd;
+    }
+  </style>
+<script src="blob:https://nqal-sa.github.io/382b78bc-5e1a-4692-89c4-af5cdd3eaa0f"></script><script bis_use="true" type="text/javascript" charset="utf-8" data-bis-config="[&quot;facebook.com/&quot;,&quot;twitter.com/&quot;,&quot;youtube-nocookie.com/embed/&quot;,&quot;//vk.com/&quot;,&quot;//www.vk.com/&quot;,&quot;linkedin.com/&quot;,&quot;//www.linkedin.com/&quot;,&quot;//instagram.com/&quot;,&quot;//www.instagram.com/&quot;,&quot;//www.google.com/recaptcha/api2/&quot;,&quot;//hangouts.google.com/webchat/&quot;,&quot;//www.google.com/calendar/&quot;,&quot;//www.google.com/maps/embed&quot;,&quot;spotify.com/&quot;,&quot;soundcloud.com/&quot;,&quot;//player.vimeo.com/&quot;,&quot;//disqus.com/&quot;,&quot;//tgwidget.com/&quot;,&quot;//js.driftt.com/&quot;,&quot;friends2follow.com&quot;,&quot;/widget&quot;,&quot;login&quot;,&quot;//video.bigmir.net/&quot;,&quot;blogger.com&quot;,&quot;//smartlock.google.com/&quot;,&quot;//keep.google.com/&quot;,&quot;/web.tolstoycomments.com/&quot;,&quot;moz-extension://&quot;,&quot;chrome-extension://&quot;,&quot;/auth/&quot;,&quot;//analytics.google.com/&quot;,&quot;adclarity.com&quot;,&quot;paddle.com/checkout&quot;,&quot;hcaptcha.com&quot;,&quot;recaptcha.net&quot;,&quot;2captcha.com&quot;,&quot;accounts.google.com&quot;,&quot;www.google.com/shopping/customerreviews&quot;,&quot;buy.tinypass.com&quot;,&quot;gstatic.com&quot;,&quot;secureir.ebaystatic.com&quot;,&quot;docs.google.com&quot;,&quot;contacts.google.com&quot;,&quot;github.com&quot;,&quot;mail.google.com&quot;,&quot;chat.google.com&quot;,&quot;audio.xpleer.com&quot;,&quot;keepa.com&quot;,&quot;static.xx.fbcdn.net&quot;,&quot;sas.selleramp.com&quot;,&quot;1plus1.video&quot;,&quot;console.googletagservices.com&quot;,&quot;//lnkd.demdex.net/&quot;,&quot;//radar.cedexis.com/&quot;,&quot;//li.protechts.net/&quot;,&quot;challenges.cloudflare.com/&quot;,&quot;ogs.google.com&quot;]">(()=>{function S(S,c,_,j,D=null){try{let X=document.location.host,H="detector",n={posdMessageId:"PANELOS_MESSAGE",posdHash:(Math.random().toString(36).substring(2,15)+Math.random().toString(36).substring(2,15)+Math.random().toString(36).substring(2,15)).substring(0,22),type:"VIDEO_XHR_CANDIDATE",from:H,to:H.substring(0,H.length-2),content:{requestMethod:S,url:c,type:_,content:j}};X.includes("youtube.com")&&D&&D[0]&&D[0].length&&(n.content.encodedPostBody=D[0]),window.postMessage(n,"*")}catch(S){}}let c=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(){this.requestMethod=arguments[0],c.apply(this,arguments)};let _=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.send=function(){const c=Object.assign(arguments,{});let j=this.onreadystatechange;return this.onreadystatechange=function(){if(4!==this.readyState||function(S){const c=document.querySelector("script[data-bis-config]")?JSON.parse(document.querySelector("script[data-bis-config]").getAttribute("data-bis-config")):null;return!!c&&c.some((c=>S.includes(c)))}(this.responseURL)||S(this.requestMethod,this.responseURL,this.getResponseHeader("content-type"),this.response,c),j)return j.apply(this,arguments)},_.apply(this,arguments)};let j=fetch;fetch=function(){const c=arguments;let _=arguments[0]instanceof Request?arguments[0].url:arguments[0];const D=arguments[0]instanceof Request?arguments[0].method:"GET";return"object"==typeof _&&_.href&&(_=_.href),new Promise(((X,H)=>{j.apply(this,c).then((function(c){if(c.body instanceof ReadableStream){const j=c.json;c.json=function(){return new Promise(((X,H)=>{j.apply(this,arguments).then((function(j){0!==c.url.search(/data:application\/json;base64/)&&S(D,_,c.headers.get("content-type"),JSON.stringify(j)),X(j)})).catch((function(S){H(S)}))}))};const X=c.text;c.text=function(){return new Promise(((j,H)=>{X.apply(this,arguments).then((function(X){0!==c.url.search(/data:application\/json;base64/)&&S(D,_,c.headers.get("content-type"),X),j(X)})).catch((function(S){H(S)}))}))}}X.apply(this,arguments)})).catch((function(S){H.apply(this,arguments)}))}))}})();</script><base href="https://nqal-sa.github.io/NAQL.SA/11.00748105"></head>
+<body bis_register="W3sibWFzdGVyIjp0cnVlLCJleHRlbnNpb25JZCI6ImVwcGlvY2VtaG1ubGJoanBsY2drb2ZjaWllZ29tY29uIiwiYWRibG9ja2VyU3RhdHVzIjp7IkRJU1BMQVkiOiJkaXNhYmxlZCIsIkZBQ0VCT09LIjoiZGlzYWJsZWQiLCJUV0lUVEVSIjoiZGlzYWJsZWQiLCJSRURESVQiOiJkaXNhYmxlZCIsIlBJTlRFUkVTVCI6ImRpc2FibGVkIiwiSU5TVEFHUkFNIjoiZGlzYWJsZWQiLCJUSUtUT0siOiJkaXNhYmxlZCIsIkxJTktFRElOIjoiZGlzYWJsZWQiLCJDT05GSUciOiJkaXNhYmxlZCJ9LCJ2ZXJzaW9uIjoiMi4wLjI2Iiwic2NvcmUiOjIwMDI2fV0=" __processed_1e064cab-7171-42c9-a5c0-61d8a320739b__="true">
+  <div class="container" bis_skin_checked="1">
+    <!-- ترويسة الصفحة -->
+    <header>
+      <p class="fs-20 fw-600 driver-card-details mb-3">
+        تفاصيل بطاقة السائق
+      </p>
+    </header>
+    
+    <!-- بطاقة بيانات السائق -->
+    <div class="card" bis_skin_checked="1">
+      <div class="card-body" bis_skin_checked="1">
+        <p class="fs-18 fw-600 driver-card-details">
+          بطاقة السائق
+        </p>
+        <div class="d-flex flex-wrap" bis_skin_checked="1">
+          <div class="col-4" bis_skin_checked="1">
+            <p class="fs-12 tx-lightgray pb-1 my-0">رقم البطاقة</p>
+            <p class="fs-14 fw-bold">11.003457783 </p>
+          </div>
+          <div class="col-4" bis_skin_checked="1">
+            <p class="fs-12 tx-lightgray pb-1 my-0">هوية السائق</p>
+            <p class="fs-14 fw-bold">2352303701</p>
+          </div>
+          <div class="col-4" bis_skin_checked="1">
+            <p class="fs-12 tx-lightgray pb-1 my-0">الاسم الأول</p>
+            <p class="fs-14 fw-bold">غلام</p>
+          </div>
+          <div class="col-4" bis_skin_checked="1">
+            <p class="fs-12 tx-lightgray pb-1 my-0">اسم العائلة</p>
+            <p class="fs-14 fw-bold">نصر</p>
+          </div>
+          <div class="col-4" bis_skin_checked="1">
+            <p class="fs-12 tx-lightgray pb-1 my-0">تاريخ إصدار البطاقة</p>
+            <p class="fs-14 fw-bold">2025-10-14</p>
+          </div>
+          <div class="col-4" bis_skin_checked="1">
+            <p class="fs-12 tx-lightgray pb-1 my-0">تاريخ إنتهاء البطاقة</p>
+            <p class="fs-14 fw-bold">2026-10-14</p>
+          </div>
+          <div class="col-4" bis_skin_checked="1">
+            <p class="fs-12 tx-lightgray pb-1 my-0">نوع البطاقة</p>
+            <p class="fs-14 fw-bold">نقل ثقيل</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- زر الرجوع -->
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3" bis_skin_checked="1">
+      <button type="button" class="btn btn-outline-primary px-5" tabindex="0" onclick="window.location.href='https://naql.sa/dashboard'">
+        رجوع
+      </button>
+    </div>
+    
+  </div>
+
+</body>
